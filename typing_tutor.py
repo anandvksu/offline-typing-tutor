@@ -5,7 +5,6 @@ import random
 import sys
 import time
 import tkinter as tk
-import urllib.request
 from tkinter import messagebox, simpledialog, ttk
 
 
@@ -21,19 +20,10 @@ USERS_FILE = os.path.join(APP_DIR, "typing_users.json")
 
 PASS_ACCURACY_THRESHOLD = 90.0
 
-# अपनी गोपनीय अनुमति की (Access Keys) यहाँ रखें (इंस्टॉल के समय नहीं मांगी जाएंगी)
+# अपनी गोपनीय अनुमति की (Key) यहाँ रखें (इंस्टॉल के समय नहीं मांगी जाएगी)
 MASTER_ACTIVATION_KEYS = {
-    "ANAND-AYUSH-ARYA-AJINKYA-1989",
-   
+    "ANAND-OFFLINE-2026",
 }
-
-# True रखने पर बिना आपकी Key के ऐप (ऑनलाइन हो या ऑफलाइन) नहीं चलेगा
-STRICT_KEY_REQUIRED = True
-
-ONLINE_CHECK_URLS = [
-    "https://www.google.com",
-    "https://1.1.1.1",
-]
 
 GAME_WORDS = {
     "English": [
@@ -215,254 +205,267 @@ KRUTIDEV_KEY_MAP = {
     "?": ("?", "Right Pinky", "ध्"),
 }
 
-ENGLISH_80 = [
-    ("L1: Keys f j", "ffjfj ffjjf jffjj jjfjf jjffj fjjfj ffjjf fjjff fjfjf fjjff jfjjf ffjjf jfjfj jjffj jffjf jffjf fjfjf jfjjf jjffj jfjff"),
-    ("L2: Keys d k", "ddkkd kdkdd kddkd ddkdk kdkkd dkkdk dkdkd dkkdk kddkd kddkk kkddk ddkdk dkkdd kkdkd dkdkk dkkdd kddkd kddkk ddkdk kkddk"),
-    ("L3: Keys s l", "llssl sslls lssll sslls sslsl slsls llssl lssls sllss sllsl llsls slsls lslss sllsl lssls lslls sslsl slsls lslsl sllsl"),
-    ("L4: Keys a ;", "aa;;a a;;aa ;aa;; ;;a;a ;a;a; aa;;a a;;a; a;;aa a;;a; aa;a; ;a;a; a;a;; a;;a; a;;a; a;;;a ;;a;a ;a;a; a;a;a a;;a; a;;a;"),
-    ("L5: Keys f j d k", "ffjd dkfj jdfk kdfd jfjk dksf jfkd dkfs fjjd kffj dkkd jfdk sflj dkjf kdlf jskd flkj djfs kljd fjks dklf"),
-    ("L6: Keys s l a ;", "sl;a a;ls l;as ;sla sals l;sa as;l ;las slal ;asl lsa; asla ;l;a slas ;l;a sa;l l;as a;sl ;asl l;sa a;ls s;al l;as"),
-    ("L7: Drill Home Row 1", "asdf jkl; asdf jkl; ffjj ddkk ssll aa;; fjdk sla; ask lad fall flask salad dad sad fad jakal lass flask"),
-    ("L8: Keys g h", "gghhg hggdd hhggf ggffh hhjjg gghjh hhfgd ggkls hhaj; gghgh hggfg hhjkd ggsl; hhdfj gghgh ggjkl hhdsa ;lkjh"),
-    ("L9: Drill Home + g h", "asdfgh jkl;gh fg hj dkgf slhj afgk ;lhj ghfjdk ghsla; had flagash gag half hall dash gash flash"),
-    ("L10: Drill Home Full", "asdfghjkl; ;lkjhgfdsa ffjj ddkk ssll aa;; gghh ask dad lad gag had jakal flask salad dash half gash"),
-    ("L11: Home Row Speed", "ffjjddkkssllaa;;gghh fjdksl;gh asdfghjkl; asdfghjkl; ask lad fall flask salad dad sad fad gag half"),
-    ("L12: Keys r u", "rruur urrur uruur rruur urrur rruur rruur urrur urrur rruur urrur urrur urruu uurru urrur urrur rruuu rruur rruur uurru"),
-    ("L13: Keys e i", "eeiie ieeii ieeie eeiei eieie eieie eeiie ieeie eii ee eieil ieeie ieeie ieeii iieei ieeie ieeie eeiii eeiei eeiei iieei"),
-    ("L14: Keys w o", "wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow oowwo owwow owwow wwooo wwoow owwow oowwo"),
-    ("L15: Keys q p", "qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq ppqqp pqqpp pqqpp qqppp qqppq qqppq ppqqp"),
-    ("L16: Keys r u e i", "ru ei ruei iure erui irue ruri eiei ruie ireu ruer eiru urie euri rieu urei riee urii eerr iiuu ruei iure"),
-    ("L17: Keys w o q p", "wo qp woqp pqow owpq qpow wowo qpqp woip qopu wopo qpip owqo pqwo wopq qpow woow qppq woqp pqow owpq qpow"),
-    ("L18: Drill Top Row", "qwertyuiop poiuytrewq qwer tyui opqw erui wopq true wire quiet power poor rope pour pure trip quit"),
-    ("L19: Drill Top + Home", "qwerty asdf uiop jkl; qwer asdf tyui jkl; opqw ;lkj true wire quiet power ask lad fall flask salad"),
-    ("L20: Top + Home Mix", "the two quick red foxes jump over the dark logs at four or five quiet hours each day with proper care"),
-    ("L21: Top Row Complete", "qwertyuiop qwertyuiop poiuytrewq poiuytrewq qwer tyui opqw erui wopq true wire quiet power rope pour pure"),
-    ("L22: Home + Top Drill", "asdf qwerty jkl; uiop fjdk ruei sl;a wopq ghhj qwer tyui opqw true wire quiet power ask lad fall flask"),
-    ("L23: Home + Top Speed", "the quick brown fox jumps over the lazy dog while four quiet workers type fast and clear words every day"),
-    ("L24: Home + Top Accuracy", "as df jk l; qw er ty ui op qwer asdf tyui jkl; opqw ;lkj fjdk ruei sl;a wopq ghhj true wire quiet power"),
-    ("L25: Keys v m", "vvm mv mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv"),
-    ("L26: Keys c ,", "cc,,c ,cc,, ,cc,, cc,c ,c,c ,c,c cc,,c ,c,c c,,cc cc,,c ,c,c ,c,c cc,,, cc,c cc,c cc,,c ,c,c ,c,c cc,,c ,c,c c,,cc"),
-    ("L27: Keys x .", "xx..x .xx.. .xx.. xx.x .x.x .x.x xx..x .x.x x..xx xx..x .x.x .x.x xx... xx.x xx.x xx..x .x.x .x.x xx..x .x.x x..xx"),
-    ("L28: Keys z /", "zz//z /zz// /zz// zz/z /z/z /z/z zz//z /z/z z//zz zz//z /z/z /z/z zz/// zz/z zz/z zz//z /z/z /z/z zz//z /z/z z//zz"),
-    ("L29: Keys v m c ,", "vm c, vm,c cm,v mvc, cvm, vmc, ,mvc c,vm mv,c cv,m vmcm ,c,c vmmv c,vm mvc, cv,m vmc, ,mvc c,vm mv,c"),
-    ("L30: Keys x . z /", "x. z/ x./z zx/. .xz/ z/x. x.z/ /zx. .z/x zx.z /.x/ x.x. z/z/ x.z/ /zx. .z/x zx/. x.z/ /zx. .z/x zx/."),
-    ("L31: Keys b n", "bbnnb nbbnn nbbnn bbnbn bnbnb bnbnb bbnnb nbbnb bnnbb bbnnb nbbnn nbbnn bbnnn bbnbn bbnbn bbnnb nbbnb bnnbb bbnbn"),
-    ("L32: Drill v m c , b", "vmc,b bvmc cbmv mvbc ,bcv vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn mvbc vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn"),
-    ("L33: Drill x . z / n", "x.z/n nx.z /nx. .znx z/nx x.nz /nzx .n/z zx.n /.x/n x.n. z/n/ x.nz /nzx .n/z zx.n x.nz /nzx .n/z zx.n"),
-    ("L34: Bottom Row Full", "zxcvbnm,./ zxcvbnm,./ /.,mnbvcxz /.,mnbvcxz zxcv bnm, ./zxcv vbm, cxz. bnm/ zxcv bnm, vmc, x.z/"),
-    ("L35: Home + Bottom", "asdf zxcv jkl; bnm, fjdk vmc, sl;a x.z/ ghhj bnm, zxcv bnm, ask lad fall flask zxcv vbm, cxz. bnm/"),
-    ("L36: Home + Top + Bottom", "asdf qwerty zxcv jkl; uiop bnm, the quick brown fox jumps over the lazy dog zxcvbnm,./ qwertyuiop asdfghjkl;"),
-    ("L37: All 3 Rows Mix", "asdfghjkl; qwertyuiop zxcvbnm,./ the quick brown fox jumps over the lazy dog pack box with five dozen liquor jugs"),
-    ("L38: Shift Home Keys", "AS DF JK L; ASDF JKL; FJDK SLA; GH HJ ASK LAD FALL FLASK SALAD DAD SAD FAD ASDF JKL; FJDK SLA;"),
-    ("L39: Shift Top Keys", "QW ER TY UI OP QWERTY UIOP RUEI WOPQ TRUE WIRE QUIET POWER ROPE POUR PURE QWERTY UIOP RUEI WOPQ"),
-    ("L40: Shift + 3 Rows", "The Quick Brown Fox Jumps Over The Lazy Dog. ASDF JKL; QWERTY UIOP ZXCV BNM. Practice Makes A Man Perfect."),
-    ("L41: Shift Bottom Keys", "ZX CV BN M ZXCV BNM VMC, X.Z/ BNM, ZXCVBNM ZXC VBNM VMCB XZN. BNM. ZXCV BNM VMC, X.Z/ BNM,"),
-    ("L42: Shift Symbols 1", ':" <> ? {} | :"<>?{}| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\|'),
-    ("L43: Shift + Home Drill", "FJDK SLA; ASDF JKL; THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. ACCURACY AND SPEED COME WITH DAILY PRACTICE."),
-    ("L44: Shift + Top Drill", "QWERTY UIOP RUEI WOPQ THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. KEEP YOUR FINGERS ON THE HOME ROW KEYS."),
-    ("L45: Shift + Bottom Drill", "ZXCV BNM,./ VMC, X.Z/ THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. DO NOT LOOK AT THE KEYBOARD WHILE TYPING."),
-    ("L46: Full Shift Mix", 'The Quick Brown Fox Jumps Over The Lazy Dog! "Practice, Patience, and Precision" are keys to fast typing.'),
-    ("L47: Numbers 1 2 3 4", "1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321"),
-    ("L48: Numbers 5 6", "5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556"),
-    ("L49: Numbers 1 to 6", "123456 654321 12 34 56 135 246 14 25 36 123456 654321 12 34 56 135 246 14 25 36 123456 654321"),
-    ("L50: Numbers 7 8 9 0", "7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987"),
-    ("L51: Full Numbers", "1234567890 0987654321 123 456 789 012 10 20 30 40 50 60 70 80 90 100 2026 1989 1991 1234567890"),
-    ("L52: Symbols !@#$%^", "!@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@ #$ %^ !@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@#$%^ ^%$#@!"),
-    ("L53: Symbols &*()_+", "&*()_+ +_)(*& &* () _+ &*( )_+ &* () _+ &*()_+ +_)(*& &* () _+ &*( )_+ &*()_+ +_)(*&"),
-    ("L54: Shift + Numbers", "!@#$%^&*()_+ +_)(*&^%$#@! 1234567890 !@# $%^ &*( )_+ 2026 @ 100% #1 & #2 (Test) [Done] {Ok}"),
-    ("L55: 3 Rows + Numbers", "Order #1024 dated 20-11-2026 has 350 items at Rs. 45 each. Total amount is Rs. 15,750 only."),
-    ("L56: Office + Numbers", "Ref. No. 88/2026: Please verify 12 files, 45 pages, and 90 records before 05:30 PM today."),
-    ("L57: Speed Building 1", "Consistent daily practice builds muscle memory in your fingers. Focus first on accuracy rather than raw speed, and your typing speed will grow naturally over time."),
-    ("L58: Speed Building 2", "Good posture, relaxed shoulders, and light keystrokes prevent fatigue during long typing sessions. Keep your eyes on the screen or source text instead of looking down at the keys."),
-    ("L59: Speed Building 3", "In office and administrative work, accuracy matters as much as speed. A single wrong number or spelling mistake in a report or record can cause unnecessary delay."),
-    ("L60: 3 Rows Intensive", "Every word you type smoothly is a step toward mastery. Keep practicing home row, top row, and bottom row combinations until your hands move effortlessly across the keyboard."),
-    ("L61: 3 Rows Rhythm", "Rhythm and steady pace help maintain high accuracy even when typing unfamiliar words or longer sentences. Stay calm when you make an error and correct it cleanly."),
-    ("L62: 3 Rows Endurance", "Longer passages test both concentration and stamina. Breathe steadily, keep your wrists straight, and maintain a balanced speed from the beginning to the end of the test."),
-    ("L63: Numbers & Punctuation", "10, 20, 30, 40, 50; 100, 250, 500, 1000. Date: 20/11/2026; Time: 14:20; Code: KT-80-MN."),
-    ("L64: High Digits & Codes", "7890, 8901, 9012, 7089, 8097, 9870, 1234567890, 0987654321, Ref-2026/11/20."),
-    ("L65: Record Accuracy", "Record ID #4092 (2026): 1,250 units processed with 99.4% accuracy in 05:00 minutes."),
-    ("L66: Number Row Drills", "11 22 33 44 55 66 77 88 99 00 123 456 789 012 345 678 901 2026 100 500 1000"),
-    ("L67: Slash & Quotes", 'a/b c/d e/f ? / : ; \' " a/b ? c:d ; e\'f " 1/2 3/4 5/6 7/8 9/10 "Hello, World!" \'Test\''),
-    ("L68: Hyphen & Brackets", "well-known, up-to-date, day-to-day, co-worker; item-1, item-2, item-3; [draft], [final], (check)."),
-    ("L69: Colon & Apostrophe", "it's, don't, can't, won't, user's, file's, system's; status: active, pending, completed."),
-    ("L70: Underscore & Codes", "file_name_01, lesson_80, typing_tutor, user_data, error_stats, test_mode_v1."),
-    ("L71: Shift + Number Row", '! @ # $ % ^ & * ( ) _ + ~ | { } : " < > ? 1 2 3 4 5 6 7 8 9 0'),
-    ("L72: Full Keyboard Drill", 'The quick brown fox jumps over the lazy dog 1234567890 !@#$%^&*()_+-=[]{}|;:\'",./<>?'),
-    ("L73: Full Keyboard Speed", "Practice typing complete sentences with numbers, punctuation, and capital letters without pausing to look at your hands. Steady rhythm leads to higher net speed."),
-    ("L74: Full Keyboard Accuracy", "Careful attention to every keystroke improves both speed and reliability. Check spelling, spacing, and punctuation so every paragraph is clean and error-free."),
-    ("L75: Paragraph 1 General", "Learning to type without looking at the keyboard takes patience at first, but once your fingers learn the exact positions of each key, typing becomes effortless. Start slowly, keep your fingers curved over the home row, and build consistency every single day."),
-    ("L76: Paragraph 2 Office", "Proper documentation and timely record maintenance are essential in every administrative office. Every application, register entry, and reference number should be recorded accurately so that files can be retrieved quickly whenever verification or review is required."),
-    ("L77: Paragraph 3 Legal", "During proceedings and hearings, clear and accurate records play a vital role. Statements, dates, case numbers, and annexures must be entered carefully without altering meanings, ensuring complete clarity for future reference and official orders."),
-    ("L78: Paragraph 4 Speed Test", "A skilled typist balances speed with precision. Rushing blindly often leads to frequent mistakes and extra time spent fixing errors, whereas a smooth, controlled rhythm delivers higher net words per minute and cleaner final text."),
-    ("L79: Paragraph 5 Endurance", "Sustained focus over several minutes is key to performing well in timed typing tests. Keep your breathing steady, relax your fingers between words, and read a few words ahead so your hands keep moving smoothly across the rows."),
-    ("L80: Paragraph 6 Final", "Mastering touch typing is a practical lifelong skill that saves time every day in drafting, coding, data entry, and correspondence. Regular practice across letters, numbers, symbols, and full paragraphs prepares you for any speed or accuracy test with confidence."),
+
+def expand_long_lesson(seed_text, repeat_count=28):
+    """हर लेसन को 4-5 पेज के बराबर लंबा (लगभग 1500-2500 शब्द/कैरेक्टर) बनाता है।"""
+    parts = [seed_text.strip()]
+    for i in range(2, repeat_count + 1):
+        parts.append(f"[{i}] {seed_text.strip()}")
+    return "  ".join(parts)
+
+
+ENGLISH_SEEDS = [
+    ("L1: Light Home f j", "ffjfj ffjjf jffjj jjfjf jjffj fjjfj ffjjf fjjff fjfjf fjjff jfjjf ffjjf jfjfj jjffj jffjf jffjf"),
+    ("L2: Light Home d k", "ddkkd kdkdd kddkd ddkdk kdkkd dkkdk dkdkd dkkdk kddkd kddkk kkddk ddkdk dkkdd kkdkd dkdkk dkkdd"),
+    ("L3: Light Home s l", "llssl sslls lssll sslls sslsl slsls llssl lssls sllss sllsl llsls slsls lslss sllsl lssls lslls"),
+    ("L4: Light Home a ;", "aa;;a a;;aa ;aa;; ;;a;a ;a;a; aa;;a a;;a; a;;aa a;;a; aa;a; ;a;a; a;a;; a;;a; a;;a; a;;;a ;;a;a"),
+    ("L5: Light Combo f j d k", "ffjd dkfj jdfk kdfd jfjk dksf jfkd dkfs fjjd kffj dkkd jfdk sflj dkjf kdlf jskd flkj djfs"),
+    ("L6: Light Combo s l a ;", "sl;a a;ls l;as ;sla sals l;sa as;l ;las slal ;asl lsa; asla ;l;a slas ;l;a sa;l l;as a;sl"),
+    ("L7: Light Home Drill 1", "asdf jkl; asdf jkl; ffjj ddkk ssll aa;; fjdk sla; ask lad fall flask salad dad sad fad"),
+    ("L8: Light Keys g h", "gghhg hggdd hhggf ggffh hhjjg gghjh hhfgd ggkls hhaj; gghgh hggfg hhjkd ggsl; hhdfj gghgh"),
+    ("L9: Light Home + g h", "asdfgh jkl;gh fg hj dkgf slhj afgk ;lhj ghfjdk ghsla; had flagash gag half hall dash"),
+    ("L10: Light Home Full", "asdfghjkl; ;lkjhgfdsa ffjj ddkk ssll aa;; gghh ask dad lad gag had jakal flask salad dash"),
+    ("L11: Light Home Rhythm", "ffjjddkkssllaa;;gghh fjdksl;gh asdfghjkl; ask lad fall flask salad dad sad fad gag half"),
+    ("L12: Light Top r u", "rruur urrur uruur rruur urrur rruur rruur urrur urrur rruur urrur urrur urruu uurru urrur"),
+    ("L13: Light Top e i", "eeiie ieeii ieeie eeiei eieie eieie eeiie ieeie eii ee eieil ieeie ieeie ieeii iieei ieeie"),
+    ("L14: Light Top w o", "wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow oowwo owwow"),
+    ("L15: Light Top q p", "qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq ppqqp pqqpp"),
+    ("L16: Light Top r u e i", "ru ei ruei iure erui irue ruri eiei ruie ireu ruer eiru urie euri rieu urei riee urii"),
+    ("L17: Light Top w o q p", "wo qp woqp pqow owpq qpow wowo qpqp woip qopu wopo qpip owqo pqwo wopq qpow woow qppq"),
+    ("L18: Light Top Drill", "qwertyuiop poiuytrewq qwer tyui opqw erui wopq true wire quiet power poor rope pour pure"),
+    ("L19: Light Top + Home", "qwerty asdf uiop jkl; qwer asdf tyui jkl; opqw ;lkj true wire quiet power ask lad fall"),
+    ("L20: Light Simple Words", "the two quick red foxes jump over the dark logs at four or five quiet hours each day with care"),
+    ("L21: Light Top Complete", "qwertyuiop qwertyuiop poiuytrewq poiuytrewq qwer tyui opqw erui wopq true wire quiet power"),
+    ("L22: Light Home + Top", "asdf qwerty jkl; uiop fjdk ruei sl;a wopq ghhj qwer tyui opqw true wire quiet power ask"),
+    ("L23: Light Speed Words", "the quick brown fox jumps over the lazy dog while four quiet workers type fast and clear words"),
+    ("L24: Light Accuracy Drill", "as df jk l; qw er ty ui op qwer asdf tyui jkl; opqw ;lkj fjdk ruei sl;a wopq ghhj true"),
+    ("L25: Light Bottom v m", "vvm mv mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv"),
+    ("L26: Light Bottom c ,", "cc,,c ,cc,, ,cc,, cc,c ,c,c ,c,c cc,,c ,c,c c,,cc cc,,c ,c,c ,c,c cc,,, cc,c cc,c cc,,c"),
+    ("L27: Light Bottom x .", "xx..x .xx.. .xx.. xx.x .x.x .x.x xx..x .x.x x..xx xx..x .x.x .x.x xx... xx.x xx.x xx..x"),
+    ("L28: Light Bottom z /", "zz//z /zz// /zz// zz/z /z/z /z/z zz//z /z/z z//zz zz//z /z/z /z/z zz/// zz/z zz/z zz//z"),
+    ("L29: Light Bottom v m c ,", "vm c, vm,c cm,v mvc, cvm, vmc, ,mvc c,vm mv,c cv,m vmcm ,c,c vmmv c,vm mvc, cv,m vmc,"),
+    ("L30: Light Bottom x . z /", "x. z/ x./z zx/. .xz/ z/x. x.z/ /zx. .z/x zx.z /.x/ x.x. z/z/ x.z/ /zx. .z/x zx/. x.z/"),
+    ("L31: Medium Keys b n", "bbnnb nbbnn nbbnn bbnbn bnbnb bnbnb bbnnb nbbnb bnnbb bbnnb nbbnn nbbnn bbnnn bbnbn bbnbn"),
+    ("L32: Medium Drill v m c , b", "vmc,b bvmc cbmv mvbc ,bcv vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn mvbc vmbc bcmv ,vmc bcbm"),
+    ("L33: Medium Drill x . z / n", "x.z/n nx.z /nx. .znx z/nx x.nz /nzx .n/z zx.n /.x/n x.n. z/n/ x.nz /nzx .n/z zx.n x.nz"),
+    ("L34: Medium Bottom Row Full", "zxcvbnm,./ zxcvbnm,./ /.,mnbvcxz /.,mnbvcxz zxcv bnm, ./zxcv vbm, cxz. bnm/ zxcv bnm,"),
+    ("L35: Medium Home + Bottom", "asdf zxcv jkl; bnm, fjdk vmc, sl;a x.z/ ghhj bnm, zxcv bnm, ask lad fall flask zxcv vbm,"),
+    ("L36: Medium 3 Rows Basic", "asdf qwerty zxcv jkl; uiop bnm, the quick brown fox jumps over the lazy dog zxcvbnm,./"),
+    ("L37: Medium 3 Rows Mix", "asdfghjkl; qwertyuiop zxcvbnm,./ the quick brown fox jumps over the lazy dog pack box five dozen"),
+    ("L38: Medium Shift Home", "AS DF JK L; ASDF JKL; FJDK SLA; GH HJ ASK LAD FALL FLASK SALAD DAD SAD FAD ASDF JKL;"),
+    ("L39: Medium Shift Top", "QW ER TY UI OP QWERTY UIOP RUEI WOPQ TRUE WIRE QUIET POWER ROPE POUR PURE QWERTY UIOP"),
+    ("L40: Medium Shift + 3 Rows", "The Quick Brown Fox Jumps Over The Lazy Dog. ASDF JKL; QWERTY UIOP ZXCV BNM. Practice Makes Perfect."),
+    ("L41: Medium Shift Bottom", "ZX CV BN M ZXCV BNM VMC, X.Z/ BNM, ZXCVBNM ZXC VBNM VMCB XZN. BNM. ZXCV BNM VMC, X.Z/"),
+    ("L42: Medium Symbols 1", ':" <> ? {} | :"<>?{}| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\|'),
+    ("L43: Medium Shift + Home", "FJDK SLA; ASDF JKL; THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. ACCURACY AND SPEED GROW DAILY."),
+    ("L44: Medium Shift + Top", "QWERTY UIOP RUEI WOPQ THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. KEEP FINGERS ON HOME ROW."),
+    ("L45: Medium Shift + Bottom", "ZXCV BNM,./ VMC, X.Z/ THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. DO NOT LOOK AT KEYBOARD."),
+    ("L46: Medium Shift Words", 'The Quick Brown Fox Jumps Over The Lazy Dog! "Practice, Patience, and Precision" build speed.'),
+    ("L47: Medium Numbers 1-4", "1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321 1212 3434 1324 4231 1122 3344"),
+    ("L48: Medium Numbers 5-6", "5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565"),
+    ("L49: Medium Numbers 1-6", "123456 654321 12 34 56 135 246 14 25 36 123456 654321 12 34 56 135 246 14 25 36 123456"),
+    ("L50: Medium Numbers 7-0", "7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987 7878 9090 7980 0897 7788 9900"),
+    ("L51: Medium Full Numbers", "1234567890 0987654321 123 456 789 012 10 20 30 40 50 60 70 80 90 100 2026 1989 1991"),
+    ("L52: Medium Symbols !@#$%^", "!@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@ #$ %^ !@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@#$%^"),
+    ("L53: Medium Symbols &*()_+", "&*()_+ +_)(*& &* () _+ &*( )_+ &* () _+ &*()_+ +_)(*& &* () _+ &*( )_+ &*()_+"),
+    ("L54: Medium Shift + Numbers", "!@#$%^&*()_+ +_)(*&^%$#@! 1234567890 !@# $%^ &*( )_+ 2026 @ 100% #1 & #2 (Test) [Done]"),
+    ("L55: Medium Office Numbers", "Order #1024 dated 20-11-2026 has 350 items at Rs. 45 each. Total amount is Rs. 15,750 only."),
+    ("L56: Medium Record Numbers", "Ref. No. 88/2026: Please verify 12 files, 45 pages, and 90 records before 05:30 PM today."),
+    ("L57: Medium Speed Para 1", "Consistent daily practice builds muscle memory in your fingers. Focus first on accuracy rather than raw speed, and your typing speed will grow naturally over time."),
+    ("L58: Medium Speed Para 2", "Good posture, relaxed shoulders, and light keystrokes prevent fatigue during long typing sessions. Keep your eyes on the screen or source text instead of looking down at the keys."),
+    ("L59: Medium Speed Para 3", "In office and administrative work, accuracy matters as much as speed. A single wrong number or spelling mistake in a report or record can cause unnecessary delay."),
+    ("L60: Medium Intensive Para", "Every word you type smoothly is a step toward mastery. Keep practicing home row, top row, and bottom row combinations until your hands move effortlessly across the keyboard."),
+    ("L61: Hard Rhythm & Pace", "Rhythm and steady pace help maintain high accuracy even when typing unfamiliar words or longer sentences. Stay calm when you make an error and correct it cleanly without breaking focus."),
+    ("L62: Hard Endurance Para", "Longer passages test both concentration and stamina. Breathe steadily, keep your wrists straight, and maintain a balanced speed from the beginning to the end of every timed test."),
+    ("L63: Hard Numbers & Punct", "10, 20, 30, 40, 50; 100, 250, 500, 1000. Date: 20/11/2026; Time: 16:20; Code: KT-80-MN; Ref: #4092."),
+    ("L64: Hard Digits & Codes", "7890, 8901, 9012, 7089, 8097, 9870, 1234567890, 0987654321, Ref-2026/11/20, Batch-A1/B2."),
+    ("L65: Hard Statistical Para", "Record ID #4092 (2026): 1,250 units processed with 99.4% accuracy in 05:00 minutes across sub-division registers."),
+    ("L66: Hard Number Drills", "11 22 33 44 55 66 77 88 99 00 123 456 789 012 345 678 901 2026 100 500 1000 98765 54321"),
+    ("L67: Hard Slash & Quotes", 'a/b c/d e/f ? / : ; \' " a/b ? c:d ; e\'f " 1/2 3/4 5/6 7/8 9/10 "Hello, World!" \'Test\''),
+    ("L68: Hard Hyphen & Brackets", "well-known, up-to-date, day-to-day, co-worker; item-1, item-2, item-3; [draft], [final], (check)."),
+    ("L69: Hard Colon & Quotes", "it's, don't, can't, won't, user's, file's, system's; status: active, pending, completed."),
+    ("L70: Hard Underscore & Code", "file_name_01, lesson_80, typing_tutor, user_data, error_stats, test_mode_v1, verification_key."),
+    ("L71: Hard Shift + Symbols", '! @ # $ % ^ & * ( ) _ + ~ | { } : " < > ? 1 2 3 4 5 6 7 8 9 0 !@#$%^&*()_+'),
+    ("L72: Hard Full Keyboard", 'The quick brown fox jumps over the lazy dog 1234567890 !@#$%^&*()_+-=[]{}|;:\'",./<>?'),
+    ("L73: Hard Speed Passage", "Practice typing complete sentences with numbers, punctuation, and capital letters without pausing to look at your hands. Steady rhythm leads to higher net speed and dependable accuracy."),
+    ("L74: Hard Accuracy Passage", "Careful attention to every keystroke improves both speed and reliability. Check spelling, spacing, and punctuation so every paragraph is clean, complete, and error-free under pressure."),
+    ("L75: Hard General Para", "Learning to type without looking at the keyboard takes patience at first, but once your fingers learn the exact positions of each key, typing becomes effortless. Start slowly, keep your fingers curved over the home row, and build consistency every single day."),
+    ("L76: Hard Office Para", "Proper documentation and timely record maintenance are essential in every administrative office. Every application, register entry, and reference number should be recorded accurately so that files can be retrieved quickly whenever verification or review is required."),
+    ("L77: Hard Legal Para", "During proceedings and hearings, clear and accurate records play a vital role. Statements, dates, case numbers, and annexures must be entered carefully without altering meanings, ensuring complete clarity for future reference and official orders."),
+    ("L78: Hard Speed Test Para", "A skilled typist balances speed with precision. Rushing blindly often leads to frequent mistakes and extra time spent fixing errors, whereas a smooth, controlled rhythm delivers higher net words per minute and cleaner final text."),
+    ("L79: Hard Endurance Para", "Sustained focus over several minutes is key to performing well in timed typing tests. Keep your breathing steady, relax your fingers between words, and read a few words ahead so your hands keep moving smoothly across the rows."),
+    ("L80: Hard Final Master Para", "Mastering touch typing is a practical lifelong skill that saves time every day in drafting, coding, data entry, and correspondence. Regular practice across letters, numbers, symbols, and full paragraphs prepares you for any speed or accuracy test with confidence."),
 ]
 
-KRUTIDEV_80 = [
-    ("L1: Keys f j", "ffjjf jffjj ffjfj jjffj fjjfj ffjjf jffjf fjfjf jffjj ffjfj jjfjf fjjff ffjjf jffjf fjfjf jfjjf ffjjf jfjfj jjffj jffjf"),
-    ("L2: Keys d k", "ddkkd kdkdd kddkd ddkdk kdkkd dkkdk dkdkd dkkdk kddkd kddkk kkddk ddkdk dkkdd kkdkd dkdkk dkkdd kddkd kddkk ddkdk kkddk"),
-    ("L3: Keys s l", "llssl sslls lssll sslls sslsl slsls llssl lssls sllss sllsl llsls slsls lslss sllsl lssls lslls sslsl slsls lslsl sllsl"),
-    ("L4: Keys a ;", "aa;;a a;;aa ;aa;; ;;a;a ;a;a; aa;;a a;;a; a;;aa a;;a; aa;a; ;a;a; a;a;; a;;a; a;;a; a;;;a ;;a;a ;a;a; a;a;a a;;a; a;;a;"),
-    ("L5: Keys f j d k", "ffjd dkfj jdfk kdfd jfjk dksf jfkd dkfs fjjd kffj dkkd jfdk sflj dkjf kdlf jskd flkj djfs kljd fjks dklf"),
-    ("L6: Keys s l a ;", "sl;a a;ls l;as ;sla sals l;sa as;l ;las slal ;asl lsa; asla ;l;a slas ;l;a sa;l l;as a;sl ;asl l;sa a;ls s;al l;as"),
-    ("L7: Drill Home Row 1", "d s h f t y r k l ; d s h f t y r k l ; dkj dkj gkj lkj dgk fdj fdj fdl jkl; asdf fjdk sla;"),
-    ("L8: Keys g h", "gghhg hggdd hhggf ggffh hhjjg gghjh hhfgd ggkls hhaj; gghgh hggfg hhjkd ggsl; hhdfj gghgh ggjkl hhdsa ;lkjh"),
-    ("L9: Drill Home + g h", "dsghf tlyrk ;gh fg hj dkgf slhj afgk ;lhj ghfjdk ghsla; dkj gkj lkj dgk hkj gsj"),
-    ("L10: Drill Home Full", "d s h f t y r k l ; ; l k j h g f d s a dkj gkj lkj dgk fdj fdl hkj gsj flk dsl"),
-    ("L11: Home Row Speed", "dkj gkj lkj dgk fdj fdj fdl hkj gsj d s h f t y r k l ; ; l k j h g f d s a"),
-    ("L12: Keys r u", "rruur urrur uruur rruur urrur rruur rruur urrur urrur rruur urrur urrur urruu uurru urrur urrur rruuu rruur rruur uurru"),
-    ("L13: Keys e i", "eeiie ieeii ieeie eeiei eieie eieie eeiie ieeie eii ee eieil ieeie ieeie ieeii iieei ieeie ieeie eeiii eeiei eeiei iieei"),
-    ("L14: Keys w o", "wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow oowwo owwow owwow wwooo wwoow owwow oowwo"),
-    ("L15: Keys q p", "qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq ppqqp pqqpp pqqpp qqppp qqppq qqppq ppqqp"),
-    ("L16: Keys r u e i", "ru ei ruei iure erui irue ruri eiei ruie ireu ruer eiru urie euri rieu urei riee urii eerr iiuu ruei iure"),
-    ("L17: Keys w o q p", "wo qp woqp pqow owpq qpow wowo qpqp woip qopu wopo qpip owqo pqwo wopq qpow woow qppq woqp pqow owpq qpow"),
-    ("L18: Drill Top Row", "q w e r t y u i o p p o i u y t r e w q ruel wopq qwer tyui opqw pqr uio ewr tyo"),
-    ("L19: Drill Top + Home", "qwer asdf tyui jkl; opqw ;lkj dkj gkj lkj ruel wopq pqr uio d s h f t y r k l ;"),
-    ("L20: Top + Home Mix", "dkj ruel gkj wopq lkj pqr dgk uio fdj tyui hkj ruei d s h f t y r k l ; q w e r t y u i o p"),
-    ("L21: Top Row Complete", "q w e r t y u i o p q w e r t y u i o p p o i u y t r e w q ruel wopq qwer tyui opqw"),
-    ("L22: Home + Top Drill", "asdf qwer jkl; tyui dkj ruel gkj wopq lkj pqr dgk uio q w e r t y u i o p d s h f t y r k l ;"),
-    ("L23: Home + Top Speed", "dkj ruel gkj wopq lkj pqr dgk uio fdj tyui hkj ruei qwer tyui asdf jkl; dkj gkj lkj dgk"),
-    ("L24: Home + Top Accuracy", "ds hf tj yk l; qw er ty ui op qwer asdf tyui jkl; opqw ;lkj dkj ruel gkj wopq lkj pqr"),
-    ("L25: Keys v m", "vvm mv mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv"),
-    ("L26: Keys c ,", "cc,,c ,cc,, ,cc,, cc,c ,c,c ,c,c cc,,c ,c,c c,,cc cc,,c ,c,c ,c,c cc,,, cc,c cc,c cc,,c ,c,c ,c,c cc,,c ,c,c c,,cc"),
-    ("L27: Keys x .", "xx..x .xx.. .xx.. xx.x .x.x .x.x xx..x .x.x x..xx xx..x .x.x .x.x xx... xx.x xx.x xx..x .x.x .x.x xx..x .x.x x..xx"),
-    ("L28: Keys z /", "zz//z /zz// /zz// zz/z /z/z /z/z zz//z /z/z z//zz zz//z /z/z /z/z zz/// zz/z zz/z zz//z /z/z /z/z zz//z /z/z z//zz"),
-    ("L29: Keys v m c ,", "vm c, vm,c cm,v mvc, cvm, vmc, ,mvc c,vm mv,c cv,m vmcm ,c,c vmmv c,vm mvc, cv,m vmc, ,mvc c,vm mv,c"),
-    ("L30: Keys x . z /", "x. z/ x./z zx/. .xz/ z/x. x.z/ /zx. .z/x zx.z /.x/ x.x. z/z/ x.z/ /zx. .z/x zx/. x.z/ /zx. .z/x zx/."),
-    ("L31: Keys b n", "bbnnb nbbnn nbbnn bbnbn bnbnb bnbnb bbnnb nbbnb bnnbb bbnnb nbbnn nbbnn bbnnn bbnbn bbnbn bbnnb nbbnb bnnbb bbnbn"),
-    ("L32: Drill v m c , b", "vmc,b bvmc cbmv mvbc ,bcv vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn mvbc vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn"),
-    ("L33: Drill x . z / n", "x.z/n nx.z /nx. .znx z/nx x.nz /nzx .n/z zx.n /.x/n x.n. z/n/ x.nz /nzx .n/z zx.n x.nz /nzx .n/z zx.n"),
-    ("L34: Bottom Row Full", "zxcvbnm,./ zxcvbnm,./ /.,mnbvcxz /.,mnbvcxz zxcv bnm, ./zxcv vbm, cxz. bnm/ zxcv bnm, vmc, x.z/"),
-    ("L35: Home + Bottom", "asdf zxcv jkl; bnm, vmc, x.z/ zxcv bnm, dkj gkj lkj dgk zxcvbnm,./ d s h f t y r k l ;"),
-    ("L36: Home + Top + Bottom", "asdf qwer zxcv jkl; tyui bnm, zxcvbnm,./ qwer tyui asdf jkl; dkj ruel gkj wopq lkj pqr"),
-    ("L37: All 3 Rows Mix", "fdrkuh] fdrkuh] vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu dkj gkj lkj dgk fdj fdl"),
-    ("L38: Shift Home Keys", "AS DF JK L; ASDF JKL; D K S L F J G H ASDF JKL; D K S L F J G H"),
-    ("L39: Shift Top Keys", "QW ER TY UI OP QWERTY UIOP R T E W Y U I O P Q QWERTY UIOP R T E W Y U I O P Q"),
-    ("L40: Shift + 3 Rows", "vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu Kku {ks= Jheku fdrkuh] fdrkuh]"),
-    ("L41: Shift Bottom Keys", "ZX CV BN M ZXCV BNM VMC, X.Z/ BNM, ZXCVBNM ZXC VBNM VMCB XZN. BNM."),
-    ("L42: Shift Symbols 1", ':" <> ? {} | :"<>?{}| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\|'),
-    ("L43: Shift + Home Drill", "vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu dkj gkj lkj dgk fdj fdl hkj gsj"),
-    ("L44: Shift + Top Drill", "vkns'k lwpuk izfrosnu vf/kdkjh dk;kZy; vfHkys[k ruel wopq qwer tyui opqw"),
-    ("L45: Shift + Bottom Drill", "Kku {ks= Jheku zxcv bnm, vmc, x.z/ zxcvbnm,./ vbm, cxz. bnm/"),
-    ("L46: Full Shift Mix", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA"),
-    ("L47: Numbers 1 2 3 4", "1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321 1212 3434 1324 4231"),
-    ("L48: Numbers 5 6", "5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556"),
-    ("L49: Numbers 1 to 6", "123456 654321 12 34 56 135 246 14 25 36 123456 654321 12 34 56 135 246 14 25 36"),
-    ("L50: Numbers 7 8 9 0", "7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987 7878 9090 7980 0897"),
-    ("L51: Full Numbers", "1234567890 0987654321 123 456 789 012 10 20 30 40 50 60 70 80 90 100 2026 1989 1991"),
-    ("L52: Symbols !@#$%^", "!@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@ #$ %^ !@#$%^ ^%$#@! !@ #$ %^ !@# $%^"),
-    ("L53: Symbols &*()_+", "&*()_+ +_)(*& &* () _+ &*( )_+ &* () _+ &*()_+ +_)(*& &* () _+ &*( )_+"),
-    ("L54: Shift + Numbers", "!@#$%^&*()_+ +_)(*&^%$#@! 1234567890 !@# $%^ &*( )_+ 2026 @ 100% #1 & #2"),
-    ("L55: 3 Rows + Numbers", "vkns'k la[;k 1024 fnukad 20-11-2026 ds rgr 350 vfHkys[kksa dh tkap 45 fnuksa esa iw.kZ djuh gSA"),
-    ("L56: Office + Numbers", "lanHkZ la[;k 88/2026% 12 Qkbyksa] 45 i`\"Bksa vkSj 90 vfHkys[kksa dk lR;kiu vkt 05%30 cts rd djsaA"),
-    ("L57: Speed Building 1", "izfrfnu vH;kl djus ls m¡xfy;ksa dh xfr vkSj lVhdrk nksuksa esa lq/kkj gksrk gSA tYnckth ds ctk; 'kq)rk ij /;ku nsaA"),
-    ("L58: Speed Building 2", "dk;kZy;hu dk;Z esa lgh orZuh vkSj le;c)rk cgqr egRoiw.kZ gksrh gSA fdlh Hkh vkns'k ;k izfrosnu esa =qfV ls cpkuk pkfg,"),
-    ("L59: Speed Building 3", "vfHkys[kksa ds lR;kiu rFkk iathdj.k dk dk;Z fu;ekuqlkj vkSj ikjn'khZ rjhds ls fd;k tkuk pkfg, rkfd vkosndksa dks lqfo/kk feysA"),
-    ("L60: 3 Rows Intensive", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA vfHkys[kksa dh tkap dj fu;ekuqlkj vkns'k ikfjr fd;k tkrk gSA"),
-    ("L61: 3 Rows Rhythm", "yk; vkSj lUrqfyr xfr ls Vkbfiax djus ij yacs vuqPNsn Hkh vklkuh ls vkSj fcuk FkdkoV ds fy[ks tk ldrs gSaA"),
-    ("L62: 3 Rows Endurance", "yEcs le; rd Vkbfiax djrs le; dafY;ksa dks lh/kk j[ksa] m¡xfy;ksa dks gYdk j[ksa vkSj lkszr eSVj ij /;ku cuk, j[ksaA"),
-    ("L63: Numbers & Punctuation", "10] 20] 30] 40] 50! 100] 250] 500] 1000A fnukad% 20/11/2026! le;% 14%20! dksM% KT-80-MN!"),
-    ("L64: High Digits & Codes", "7890] 8901] 9012] 7089] 8097] 9870] 1234567890] 0987654321] lanHkZ-2026/11/20A"),
-    ("L65: Record Accuracy", "vfHkys[k la[;k #4092 (2026)% 1]250 enksa dk fuLrkj.k 99.4% 'kq)rk ds lkFk 05%00 feuV esa fd;k x;kA"),
-    ("L66: Number Row Drills", "11 22 33 44 55 66 77 88 99 00 123 456 789 012 345 678 901 2026 100 500 1000"),
-    ("L67: Slash & Quotes", 'd/k [k/x p/N ? / % ! \' " d/k ? p%N ! [k\'x " 1/2 3/4 5/6 7/8 9/10 "dk;kZy;" \'vkns\'k\''),
-    ("L68: Hyphen & Brackets", "mi&lekgrkZ] nkf[ky&[kkfjt] fnu&izfrfnu! en-1] en-2] en-3! izk:] vafre] tkapA"),
-    ("L69: Colon & Apostrophe", "vf/kdkjh% dk;kZy;% vfHkys[k% vkns'k% izfrosnu% lwpuk% fLFkfr% lfØ;] yafcr] iw.kZA"),
-    ("L70: Underscore & Codes", "Qkby_01] ikB_80] Vkbfiax_V~;wVj] ;wtj_MsVk] =kqfV_LVSV] eksM_v1A"),
-    ("L71: Shift + Number Row", '! @ # $ % ^ & * ( ) _ + ~ | { } % " < > ? 1 2 3 4 5 6 7 8 9 0'),
-    ("L72: Full Keyboard Drill", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa 2026 esa 1234567890 vfHkys[kksa dk lR;kiu fd;k x;kA"),
-    ("L73: Full Keyboard Speed", "fcuk dhcksMZ ns[ks Vkbfiax djus dk vH;kl djus ls xfr vkSj lVhdrk nksuksa esa rsth ls c<+ksrjh gksrh gSA"),
-    ("L74: Full Keyboard Accuracy", "izR;sd 'kCn vkSj ek=k dks /;kuiwoZd ns[kdj Vkbfiax djsa rkfd vafre eSVj iwjh rjg 'kq) vkSj =qfVjfgr gksA"),
-    ("L75: Paragraph 1 General", "fcuk dhcksMZ ns[ks Vkbfiax lh[kus esa 'kq#vkr esa /kS;Z dh vko';drk gksrh gS] ysfdu tc m¡xfy;ksa dks izR;sd dh dh lgh fLFkfr ;kn gks tkrh gS rks Vkbfiax vklku gks tkrh gSA izfrfnu fu;fer vH;kl djrs jguk pkfg,A"),
-    ("L76: Paragraph 2 Office", "iz'kklfud dk;kZy;ksa esa vfHkys[kksa dk lgh la/kkj.k vkSj le; ij lR;kiu vR;ar vko';d gSA izR;sd vkosnu] iath izfof\"V vkSj lanHkZ la[;k dks 'kq)rk ls ntZ fd;k tkuk pkfg, rkfd vko';drk iM+us ij Qkby rqjUr miyC/k gks ldsA"),
-    ("L77: Paragraph 3 Legal", "U;kf;d vkSj jktLo oknksa dh lquokbZ ds nkSjku Li\"V vkSj lVhd vfHkys[k egRoiw.kZ Hkwfedk fuHkkmrs gSaA c;ku] frfFk;ka] okn la[;k vkSj layXu dkxtkrksa dks lko/kkuh ls ntZ djuk pkfg, rkfd vkns'k ikfjr djus esa dksbZ Hkze u jgsA"),
-    ("L78: Paragraph 4 Speed Test", ",d dq'ky VkbfiLV xfr vkSj 'kq)rk ds chp lUrqyu cuk, j[krk gSA fcuk lksps rs\"k Vkbfiax djus ls vf/kd =qfV;ka gksrh gSa] tcfd fLFkj vkSj fu;af=r y; ls vf/kd 'kq) xfr vkSj lkQ eSVj izkIr gksrk gSA"),
-    ("L79: Paragraph 5 Endurance", "yEcs le; rd ,dkxzrk cuk, j[kuk le;c) Vkbfiax ijh{kk esa vPNs izn'kZu dh dqath gSA 'kCnksa ds chp m¡xfy;ksa dks gYdk j[ksa vkSj vkxs ds 'kCnksa ij utj j[ksa rkfd gkFk lqpk: :i ls pyrs jgsaA"),
-    ("L80: Paragraph 6 Final", "Li'kZ Vkbfiax ,d O;kogkfjd dkS'ky gS tks izfrfnu Mªkf¶Vax] MsVk ,aVªh vkSj i=kpkj esa le; cprk gSA v{kjksa] ek=kvksa] vadksa vkSj iwjs vuqPNsnksa dk fu;fer vH;kl vkidks fdlh Hkh ijh{kk ds fy, rS;kj djrk gSA"),
+KRUTIDEV_SEEDS = [
+    ("L1: Light Kruti f j", "ffjjf jffjj ffjfj jjffj fjjfj ffjjf jffjf fjfjf jffjj ffjfj jjfjf fjjff ffjjf jffjf fjfjf"),
+    ("L2: Light Kruti d k", "ddkkd kdkdd kddkd ddkdk kdkkd dkkdk dkdkd dkkdk kddkd kddkk kkddk ddkdk dkkdd kkdkd dkdkk"),
+    ("L3: Light Kruti s l", "llssl sslls lssll sslls sslsl slsls llssl lssls sllss sllsl llsls slsls lslss sllsl lssls"),
+    ("L4: Light Kruti a ;", "aa;;a a;;aa ;aa;; ;;a;a ;a;a; aa;;a a;;a; a;;aa a;;a; aa;a; ;a;a; a;a;; a;;a; a;;a; a;;;a"),
+    ("L5: Light Kruti f j d k", "ffjd dkfj jdfk kdfd jfjk dksf jfkd dkfs fjjd kffj dkkd jfdk sflj dkjf kdlf jskd flkj"),
+    ("L6: Light Kruti s l a ;", "sl;a a;ls l;as ;sla sals l;sa as;l ;las slal ;asl lsa; asla ;l;a slas ;l;a sa;l l;as"),
+    ("L7: Light Home Drill 1", "d s h f t y r k l ; d s h f t y r k l ; dkj dkj gkj lkj dgk fdj fdj fdl jkl;"),
+    ("L8: Light Kruti g h", "gghhg hggdd hhggf ggffh hhjjg gghjh hhfgd ggkls hhaj; gghgh hggfg hhjkd ggsl; hhdfj"),
+    ("L9: Light Home + g h", "dsghf tlyrk ;gh fg hj dkgf slhj afgk ;lhj ghfjdk ghsla; dkj gkj lkj dgk hkj gsj"),
+    ("L10: Light Home Full", "d s h f t y r k l ; ; l k j h g f d s a dkj gkj lkj dgk fdj fdl hkj gsj flk dsl"),
+    ("L11: Light Home Speed", "dkj gkj lkj dgk fdj fdj fdl hkj gsj d s h f t y r k l ; ; l k j h g f d s a"),
+    ("L12: Light Top r u", "rruur urrur uruur rruur urrur rruur rruur urrur urrur rruur urrur urrur urruu uurru"),
+    ("L13: Light Top e i", "eeiie ieeii ieeie eeiei eieie eieie eeiie ieeie eii ee eieil ieeie ieeie ieeii iieei"),
+    ("L14: Light Top w o", "wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow oowwo"),
+    ("L15: Light Top q p", "qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq ppqqp"),
+    ("L16: Light Top r u e i", "ru ei ruei iure erui irue ruri eiei ruie ireu ruer eiru urie euri rieu urei riee"),
+    ("L17: Light Top w o q p", "wo qp woqp pqow owpq qpow wowo qpqp woip qopu wopo qpip owqo pqwo wopq qpow woow"),
+    ("L18: Light Top Drill", "q w e r t y u i o p p o i u y t r e w q ruel wopq qwer tyui opqw pqr uio ewr tyo"),
+    ("L19: Light Top + Home", "qwer asdf tyui jkl; opqw ;lkj dkj gkj lkj ruel wopq pqr uio d s h f t y r k l ;"),
+    ("L20: Light Top + Home Mix", "dkj ruel gkj wopq lkj pqr dgk uio fdj tyui hkj ruei d s h f t y r k l ; q w e r"),
+    ("L21: Light Top Complete", "q w e r t y u i o p q w e r t y u i o p p o i u y t r e w q ruel wopq qwer tyui"),
+    ("L22: Light Home + Top", "asdf qwer jkl; tyui dkj ruel gkj wopq lkj pqr dgk uio q w e r t y u i o p d s h f"),
+    ("L23: Light Home + Top Speed", "dkj ruel gkj wopq lkj pqr dgk uio fdj tyui hkj ruei qwer tyui asdf jkl; dkj gkj"),
+    ("L24: Light Home + Top Acc", "ds hf tj yk l; qw er ty ui op qwer asdf tyui jkl; opqw ;lkj dkj ruel gkj wopq"),
+    ("L25: Light Bottom v m", "vvm mv mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv"),
+    ("L26: Light Bottom c ,", "cc,,c ,cc,, ,cc,, cc,c ,c,c ,c,c cc,,c ,c,c c,,cc cc,,c ,c,c ,c,c cc,,, cc,c cc,c"),
+    ("L27: Light Bottom x .", "xx..x .xx.. .xx.. xx.x .x.x .x.x xx..x .x.x x..xx xx..x .x.x .x.x xx... xx.x xx.x"),
+    ("L28: Light Bottom z /", "zz//z /zz// /zz// zz/z /z/z /z/z zz//z /z/z z//zz zz//z /z/z /z/z zz/// zz/z zz/z"),
+    ("L29: Light Bottom v m c ,", "vm c, vm,c cm,v mvc, cvm, vmc, ,mvc c,vm mv,c cv,m vmcm ,c,c vmmv c,vm mvc, cv,m"),
+    ("L30: Light Bottom x . z /", "x. z/ x./z zx/. .xz/ z/x. x.z/ /zx. .z/x zx.z /.x/ x.x. z/z/ x.z/ /zx. .z/x zx/."),
+    ("L31: Medium Keys b n", "bbnnb nbbnn nbbnn bbnbn bnbnb bnbnb bbnnb nbbnb bnnbb bbnnb nbbnn nbbnn bbnnn bbnbn"),
+    ("L32: Medium Drill v m c , b", "vmc,b bvmc cbmv mvbc ,bcv vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn mvbc vmbc bcmv ,vmc"),
+    ("L33: Medium Drill x . z / n", "x.z/n nx.z /nx. .znx z/nx x.nz /nzx .n/z zx.n /.x/n x.n. z/n/ x.nz /nzx .n/z zx.n"),
+    ("L34: Medium Bottom Full", "zxcvbnm,./ zxcvbnm,./ /.,mnbvcxz /.,mnbvcxz zxcv bnm, ./zxcv vbm, cxz. bnm/ zxcv"),
+    ("L35: Medium Home + Bottom", "asdf zxcv jkl; bnm, vmc, x.z/ zxcv bnm, dkj gkj lkj dgk zxcvbnm,./ d s h f t y"),
+    ("L36: Medium 3 Rows Basic", "asdf qwer zxcv jkl; tyui bnm, zxcvbnm,./ qwer tyui asdf jkl; dkj ruel gkj wopq"),
+    ("L37: Medium 3 Rows Mix", "fdrkuh] fdrkuh] vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu dkj gkj lkj dgk fdj"),
+    ("L38: Medium Shift Home", "AS DF JK L; ASDF JKL; D K S L F J G H ASDF JKL; D K S L F J G H"),
+    ("L39: Medium Shift Top", "QW ER TY UI OP QWERTY UIOP R T E W Y U I O P Q QWERTY UIOP R T E W Y U I O P Q"),
+    ("L40: Medium Shift + 3 Rows", "vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu Kku {ks= Jheku fdrkuh] fdrkuh]"),
+    ("L41: Medium Shift Bottom", "ZX CV BN M ZXCV BNM VMC, X.Z/ BNM, ZXCVBNM ZXC VBNM VMCB XZN. BNM."),
+    ("L42: Medium Symbols 1", ':" <> ? {} | :"<>?{}| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\|'),
+    ("L43: Medium Shift + Home", "vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu dkj gkj lkj dgk fdj fdl hkj gsj"),
+    ("L44: Medium Shift + Top", "vkns'k lwpuk izfrosnu vf/kdkjh dk;kZy; vfHkys[k ruel wopq qwer tyui opqw"),
+    ("L45: Medium Shift + Bottom", "Kku {ks= Jheku zxcv bnm, vmc, x.z/ zxcvbnm,./ vbm, cxz. bnm/"),
+    ("L46: Medium Office Line", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA"),
+    ("L47: Medium Numbers 1-4", "1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321 1212 3434 1324 4231"),
+    ("L48: Medium Numbers 5-6", "5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556"),
+    ("L49: Medium Numbers 1-6", "123456 654321 12 34 56 135 246 14 25 36 123456 654321 12 34 56 135 246 14 25 36"),
+    ("L50: Medium Numbers 7-0", "7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987 7878 9090 7980 0897"),
+    ("L51: Medium Full Numbers", "1234567890 0987654321 123 456 789 012 10 20 30 40 50 60 70 80 90 100 2026 1989 1991"),
+    ("L52: Medium Symbols !@#$%^", "!@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@ #$ %^ !@#$%^ ^%$#@! !@ #$ %^ !@# $%^"),
+    ("L53: Medium Symbols &*()_+", "&*()_+ +_)(*& &* () _+ &*( )_+ &* () _+ &*()_+ +_)(*& &* () _+ &*( )_+"),
+    ("L54: Medium Shift + Numbers", "!@#$%^&*()_+ +_)(*&^%$#@! 1234567890 !@# $%^ &*( )_+ 2026 @ 100% #1 & #2"),
+    ("L55: Medium Office Numbers", "vkns'k la[;k 1024 fnukad 20-11-2026 ds rgr 350 vfHkys[kksa dh tkap 45 fnuksa esa iw.kZ djuh gSA"),
+    ("L56: Medium Record Numbers", "lanHkZ la[;k 88/2026% 12 Qkbyksa] 45 i`\"Bksa vkSj 90 vfHkys[kksa dk lR;kiu vkt 05%30 cts rd djsaA"),
+    ("L57: Medium Speed Para 1", "izfrfnu vH;kl djus ls m¡xfy;ksa dh xfr vkSj lVhdrk nksuksa esa lq/kkj gksrk gSA tYnckth ds ctk; 'kq)rk ij /;ku nsaA"),
+    ("L58: Medium Speed Para 2", "dk;kZy;hu dk;Z esa lgh orZuh vkSj le;c)rk cgqr egRoiw.kZ gksrh gSA fdlh Hkh vkns'k ;k izfrosnu esa =qfV ls cpkuk pkfg,"),
+    ("L59: Medium Speed Para 3", "vfHkys[kksa ds lR;kiu rFkk iathdj.k dk dk;Z fu;ekuqlkj vkSj ikjn'khZ rjhds ls fd;k tkuk pkfg, rkfd vkosndksa dks lqfo/kk feysA"),
+    ("L60: Medium Intensive Para", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA vfHkys[kksa dh tkap dj fu;ekuqlkj vkns'k ikfjr fd;k tkrk gSA"),
+    ("L61: Hard Rhythm & Pace", "yk; vkSj lUrqfyr xfr ls Vkbfiax djus ij yacs vuqPNsn Hkh vklkuh ls vkSj fcuk FkdkoV ds fy[ks tk ldrs gSaA"),
+    ("L62: Hard Endurance Para", "yEcs le; rd Vkbfiax djrs le; dafY;ksa dks lh/kk j[ksa] m¡xfy;ksa dks gYdk j[ksa vkSj lkszr eSVj ij /;ku cuk, j[ksaA"),
+    ("L63: Hard Numbers & Punct", "10] 20] 30] 40] 50! 100] 250] 500] 1000A fnukad% 20/11/2026! le;% 16%20! dksM% KT-80-MN!"),
+    ("L64: Hard Digits & Codes", "7890] 8901] 9012] 7089] 8097] 9870] 1234567890] 0987654321] lanHkZ-2026/11/20A"),
+    ("L65: Hard Record Accuracy", "vfHkys[k la[;k #4092 (2026)% 1]250 enksa dk fuLrkj.k 99.4% 'kq)rk ds lkFk 05%00 feuV esa fd;k x;kA"),
+    ("L66: Hard Number Drills", "11 22 33 44 55 66 77 88 99 00 123 456 789 012 345 678 901 2026 100 500 1000"),
+    ("L67: Hard Slash & Quotes", 'd/k [k/x p/N ? / % ! \' " d/k ? p%N ! [k\'x " 1/2 3/4 5/6 7/8 9/10 "dk;kZy;" \'vkns\'k\''),
+    ("L68: Hard Hyphen & Brackets", "mi&lekgrkZ] nkf[ky&[kkfjt] fnu&izfrfnu! en-1] en-2] en-3! izk:] vafre] tkapA"),
+    ("L69: Hard Colon & Quotes", "vf/kdkjh% dk;kZy;% vfHkys[k% vkns'k% izfrosnu% lwpuk% fLFkfr% lfØ;] yafcr] iw.kZA"),
+    ("L70: Hard Underscore & Code", "Qkby_01] ikB_80] Vkbfiax_V~;wVj] ;wtj_MsVk] =kqfV_LVSV] eksM_v1A"),
+    ("L71: Hard Shift + Symbols", '! @ # $ % ^ & * ( ) _ + ~ | { } % " < > ? 1 2 3 4 5 6 7 8 9 0'),
+    ("L72: Hard Full Keyboard", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa 2026 esa 1234567890 vfHkys[kksa dk lR;kiu fd;k x;kA"),
+    ("L73: Hard Speed Passage", "fcuk dhcksMZ ns[ks Vkbfiax djus dk vH;kl djus ls xfr vkSj lVhdrk nksuksa esa rsth ls c<+ksrjh gksrh gSA"),
+    ("L74: Hard Accuracy Passage", "izR;sd 'kCn vkSj ek=k dks /;kuiwoZd ns[kdj Vkbfiax djsa rkfd vafre eSVj iwjh rjg 'kq) vkSj =qfVjfgr gksA"),
+    ("L75: Hard General Para", "fcuk dhcksMZ ns[ks Vkbfiax lh[kus esa 'kq#vkr esa /kS;Z dh vko';drk gksrh gS] ysfdu tc m¡xfy;ksa dks izR;sd dh dh lgh fLFkfr ;kn gks tkrh gS rks Vkbfiax vklku gks tkrh gSA izfrfnu fu;fer vH;kl djrs jguk pkfg,A"),
+    ("L76: Hard Office Para", "iz'kklfud dk;kZy;ksa esa vfHkys[kksa dk lgh la/kkj.k vkSj le; ij lR;kiu vR;ar vko';d gSA izR;sd vkosnu] iath izfof\"V vkSj lanHkZ la[;k dks 'kq)rk ls ntZ fd;k tkuk pkfg, rkfd vko';drk iM+us ij Qkby rqjUr miyC/k gks ldsA"),
+    ("L77: Hard Legal Para", "U;kf;d vkSj jktLo oknksa dh lquokbZ ds nkSjku Li\"V vkSj lVhd vfHkys[k egRoiw.kZ Hkwfedk fuHkkmrs gSaA c;ku] frfFk;ka] okn la[;k vkSj layXu dkxtkrksa dks lko/kkuh ls ntZ djuk pkfg, rkfd vkns'k ikfjr djus esa dksbZ Hkze u jgsA"),
+    ("L78: Hard Speed Test Para", ",d dq'ky VkbfiLV xfr vkSj 'kq)rk ds chp lUrqyu cuk, j[krk gSA fcuk lksps rs\"k Vkbfiax djus ls vf/kd =qfV;ka gksrh gSa] tcfd fLFkj vkSj fu;af=r y; ls vf/kd 'kq) xfr vkSj lkQ eSVj izkIr gksrk gSA"),
+    ("L79: Hard Endurance Para", "yEcs le; rd ,dkxzrk cuk, j[kuk le;c) Vkbfiax ijh{kk esa vPNs izn'kZu dh dqath gSA 'kCnksa ds chp m¡xfy;ksa dks gYdk j[ksa vkSj vkxs ds 'kCnksa ij utj j[ksa rkfd gkFk lqpk: :i ls pyrs jgsaA"),
+    ("L80: Hard Final Master Para", "Li'kZ Vkbfiax ,d O;kogkfjd dkS'ky gS tks izfrfnu Mªkf¶Vax] MsVk ,aVªh vkSj i=kpkj esa le; cprk gSA v{kjksa] ek=kvksa] vadksa vkSj iwjs vuqPNsnksa dk fu;fer vH;kl vkidks fdlh Hkh ijh{kk ds fy, rS;kj djrk gSA"),
 ]
 
-MANGAL_80 = [
-    ("L1: Keys ि र", "किर रकि ककिर ररकिर किरर रककिर किरक ररकक ककरक ररकक रककिर ककिरक रकिरक ररककिर रककिर रककिर ककरक रककिर ररककिर रककिर"),
-    ("L2: Keys ा क", "काका काकका ककाका काकाक ककाका काकका काकका काकका ककाका काकका काकका काकका काकका काकका काकका काकका काकका काकका काकका काकका"),
-    ("L3: Keys े स", "सेसे सेससे सेसेस सेसेक सेससे सेसेस सेसेस सेससे सेसेस सेससे सेससे सेसेस सेससे सेसेस सेससे सेसेस सेससे सेससे सेसेस सेससे"),
-    ("L4: Keys ं य", "यंयं यंययं यंयंय यंयंयं यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंयं यंयंय यंयंय यंयंय"),
-    ("L5: Drill क का कि की", "क का कि की काक किक कीक किका काकि किकि कीकी ककाक किकाक कि की का की कि की काक किक कीक किका काकि किकि कीकी"),
-    ("L6: Drill स से यं य", "स से यं य सस सेसे यंयं यय सयं सेयं यसं यंसे सेयं ससे यंय सस सेसे यंयं यय सयं सेयं यसं यंसे सेयं ससे यंय"),
-    ("L7: Drill क ख ग घ", "क ख ग घ च छ ज झ ट ठ ठ ज च घ ख क ग घ च छ ज झ ट ठ कख गघ चछ जझ टठ कग चज टठ घझ छठ खग जच"),
-    ("L8: Keys ु ू", "कु कू कुकु कुकू कुकुउ कुकूउ कुकुक कुकूउ कुकुक कुकूउ कुकूउ कुकुक कुकुक कुकूउ कुकुक कुकूउ कुकुक कुकूउ कुकूउ कुकुक"),
-    ("L9: Drill Home + ु ू", "क ख ग घ च छ ज झ ट ठ कु कू कख गघ चछ जझ टठ कुकू कग चज टठ घझ छठ कुकू कुकुक कखगघ चछजझ टठकु कू"),
-    ("L10: Drill Home Full", "क ख ग घ च छ ज झ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह कख गघ चछ जझ टठ तथ दध पफ बभ मय रल"),
-    ("L11: Home Row Speed", "कख गघ चछ जझ टठ तथ दध पफ बभ मय रल क ख ग घ च छ ज झ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह"),
-    ("L12: Keys त न", "तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन"),
-    ("L13: Keys म प", "मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म"),
-    ("L14: Keys ू व", "वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू"),
-    ("L15: Keys ु च", "चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु"),
-    ("L16: Drill त न म प", "तन मप तमन पनत मनप पतम नतप मतन पमत तपन नमत तनम पमन तन मप तमन पनत मनप पतम नतप मतन पमत तपन नमत"),
-    ("L17: Drill व च ु ू", "वच चव वुच चुव वूच चूप वचव चुवच वुचव चवु वच चव वुच चुव वूच चूप वचव चुवच वुचव चवु वच चव वुच चुव वूच चूप"),
-    ("L18: Drill Top Row", "प व च त न म पवन चमन नमन वतन चरण तपन पवन चमन नमन वतन चरण तपन पवन चमन नमन वतन चरण तपन"),
-    ("L19: Drill Top + Home", "पवन चमन नमन वतन चरण तपन कमल नयन घर चल अब कल फल जल मन धन कर भर पवन चमन नमन वतन चरण तपन"),
-    ("L20: Top + Home Mix", "कमल नयन घर चल अब कल फल जल पवन चमन नमन वतन चरण तपन मन धन कर भर हर पल जन धन वन"),
-    ("L21: Top Row Complete", "प व च त न म र ल व स य ह पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम पवन चमन नमन वतन चरण तपन"),
-    ("L22: Home + Top Drill", "कमल नयन घर चल पवन चमन नमन वतन सरस सरल नगर खबर महल कलम अब कल फल जल मन धन कर भर"),
-    ("L23: Home + Top Speed", "कमल नयन घर चल पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम मन धन कर भर हर पल जन धन वन"),
-    ("L24: Home + Top Accuracy", "कमल नयन घर चल पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम अब कल फल जल मन धन कर भर"),
-    ("L25: Keys अ उ", "अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ"),
-    ("L26: Keys ब ए", "बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए"),
-    ("L27: Keys ग ण", "गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण"),
-    ("L28: Keys र ध", "रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध"),
-    ("L29: Drill अ उ ब ए", "अब एब उब बए अबल एबक उबग बएव अब एब उब बए अबल एबक उबग बएव अब एब उब बए अबल एबक उबग बएव"),
-    ("L30: Drill ग ण र ध", "गर धर गण रध गरम धरम गणन रथ गर धर गण रध गरम धरम गणन रथ गर धर गण रध गरम धरम गणन रथ"),
-    ("L31: Keys इ द", "इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद"),
-    ("L32: Drill अ उ ब ए इ", "अब इब उब बइ अबल इबक उबग बइव अब इब उब बइ अबल इबक उबग बइव अब इब उब बइ अबल इबक उबग बइव"),
-    ("L33: Drill ग ण र ध द", "गर दर गण दन गरम दरम गणन दशन गर दर गण दन गरम दरम गणन दशन गर दर गण दन गरम दरम गणन दशन"),
-    ("L34: Bottom Row Full", "अ इ उ ए ण ध ग ब द र अबल इबक उबग बएव गरम धरम गणन दशन अबल इबक उबग बएव गरम धरम गणन दशन"),
-    ("L35: Home + Bottom", "कमल नयन घर चल अबल इबक उबग बएव गरम धरम गणन दशन अब कल फल जल मन धन कर भर"),
-    ("L36: Home + Top + Bottom", "कमल नयन घर चल पवन चमन नमन वतन अबल इबक उबग बएव गरम धरम गणन दशन सरस सरल नगर खबर महल कलम"),
-    ("L37: All 3 Rows Mix", "कमल नयन पवन चमन अबल इबक सरस सरल नगर खबर महल कलम दशन गणन घर चल अब कल फल जल मन धन"),
-    ("L38: Shift स्वर आ ई ऊ ऐ औ", "आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार"),
-    ("L39: Shift संयुक्त क्ष त्र ज्ञ श्र", "क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम"),
-    ("L40: Shift + 3 Rows", "क्षमा त्रुटि ज्ञान श्रम आऊ ईद ऊन ऐन औजार कमल नयन पवन चमन सरस सरल नगर खबर महल कलम"),
-    ("L41: Shift चिह्न ऋ ः ँ ॅ", "ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच"),
-    ("L42: Shift विराम । , . : ; ?", "। , . : ; ? । , . : ; ? । , . : ; ? । , . : ; ? । , . : ; ?"),
-    ("L43: Shift + Home Drill", "आऊ ईद ऊन ऐन औजार कमल नयन घर चल अब कल फल जल मन धन कर भर हर पल जन धन वन"),
-    ("L44: Shift + Top Drill", "क्षमा त्रुटि ज्ञान श्रम पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम"),
-    ("L45: Shift + Bottom Drill", "अबल इबक उबग बएव गरम धरम गणन दशन क्षमा त्रुटि ज्ञान श्रम आऊ ईद ऊन ऐन औजार"),
-    ("L46: Full Shift Mix", "अधिकारी कार्यालय अभिलेख आदेश आवेदन प्रतिवेदन सुनवाई प्रमाण पत्र संशोधन पंजीकरण क्षमा त्रुटि ज्ञान श्रम"),
-    ("L47: अंक १ २ ३ ४", "११ २२ ३३ ४४ १२३४ ४३२१ १२१२ ३४३४ १३२४ ४२३१ ११ २२ ३३ ४४ १२३४ ४३२१ १२१२ ३४३४ १३२४ ४२३१"),
-    ("L48: अंक ५ ६", "५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६ ५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६ ५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६"),
-    ("L49: अंक १ से ६", "१२३४५६ ६५४३२१ १२ ३४ ५६ १३५ २४६ १४ २५ ३६ १२३४५६ ६५४३२१ १२ ३४ ५६ १३५ २४६ १४ २५ ३६"),
-    ("L50: अंक ७ ८ ९ ०", "७७ ८८ ९९ ०० ७८९० ०९८७ ७८७८ ९०९० ७९८० ०८९७ ७७ ८८ ९९ ०० ७८९० ०९८७ ७८७८ ९०९० ७९८० ०८९७"),
-    ("L51: पूरे अंक", "१२३४५६७८९० ०९८७६५४३२१ १२३ ४५६ ७८९ ०१२ १० २० ३० ४० ५० ६० ७० ८० ९० १०० २०२६ १९८९ १९९१"),
-    ("L52: चिह्न !@#$%^", "! @ # $ % ^ ^ $ # @ ! !@ #$ %^ !@# $%^ !@#$%^ ^%$#@! ! @ # $ % ^ ^ $ # @ !"),
-    ("L53: चिह्न &*()_+", "& * ( ) _ + + _ ) ( * & &* () _+ &*( )_+ &*()_+ +_)(*& & * ( ) _ + + _ ) ( * &"),
-    ("L54: Shift + अंक", "!@#$%^&*()_+ +_)(*&^%$#@! १२३४५६७८९० !@# $%^ &*( )_+ २०२६ @ १००% #१ & #२"),
-    ("L55: 3 Rows + अंक", "आदेश संख्या १०२४ दिनांक २०-११-२०२६ के तहत ३५० अभिलेखों की जांच ४५ दिनों में पूर्ण करनी है।"),
-    ("L56: कार्यालय + अंक", "संदर्भ संख्या ८८/२०२६: १२ फाइलों, ४५ पृष्ठों और ९० अभिलेखों का सत्यापन आज ०५:३० बजे तक करें।"),
-    ("L57: Speed Building 1", "प्रतिदिन अभ्यास करने से उंगलियों की गति और सटीकता दोनों में सुधार होता है। जल्दबाजी के बजाय शुद्धता पर ध्यान दें।"),
-    ("L58: Speed Building 2", "कार्यालयीन कार्य में सही वर्तनी और समयबद्धता बहुत महत्वपूर्ण होती है। किसी भी आदेश या प्रतिवेदन में त्रुटि से बचना चाहिए।"),
-    ("L59: Speed Building 3", "अभिलेखों के सत्यापन तथा पंजीकरण का कार्य नियमानुसार और पारदर्शी तरीके से किया जाना चाहिए ताकि आवेदकों को सुविधा मिले।"),
-    ("L60: 3 Rows Intensive", "भूमि सुधार उप-समाहर्ता न्यायालय में प्राप्त आवेदनों का अभिलेखीय सत्यापन समयबद्ध रूप से किया जाता है।"),
-    ("L61: 3 Rows Rhythm", "लय और संतुलित गति से टाइपिंग करने पर लंबे अनुच्छेद भी आसानी से और बिना थकावट के लिखे जा सकते हैं।"),
-    ("L62: 3 Rows Endurance", "लंबे समय तक टाइपिंग करते समय कलाइयों को सीधा रखें, उंगलियों को हल्का रखें और स्रोत मैटर पर ध्यान बनाए रखें।"),
-    ("L63: अंक व विराम चिह्न", "१०, २०, ३०, ४०, ५०; १००, २५०, ५००, १०००। दिनांक: २०/११/२०२६; समय: १४:२०; कोड: KT-80-MN।"),
-    ("L64: उच्च अंक व कोड", "७८९०, ८९०१, ९०१२, ७०८९, ८०९७, ९८७०, १२३४५६७८९०, ०९८७६५४३२१, संदर्भ-२०२६/११/२०।"),
-    ("L65: अभिलेख शुद्धता", "अभिलेख संख्या #४०९२ (२०२६): १,२५० मदों का निस्तारण ९९.४% शुद्धता के साथ ०५:०० मिनट में किया गया।"),
-    ("L66: नंबर रो ड्रिल", "११ २२ ३३ ४४ ५५ ६६ ७७ ८८ ९९ ०० १२३ ४५६ ७८९ ०१२ ३४५ ६७८ ९०१ २०२६ १०० ५०० १०००"),
-    ("L67: स्लैश व उद्धरण", "क/ख ग/घ च/छ ? / : ; ' \" क/ख ? च:छ ; ग'घ \" १/२ ३/४ ५/६ ७/८ ९/१० \"कार्यालय\" 'आदेश'"),
-    ("L68: हाइफन व कोष्ठक", "उप-समाहर्ता, दाखिल-खारिज, दिन-प्रतिदिन; मद-१, मद-२, मद-३; प्रारूप, अंतिम, जांच।"),
-    ("L69: विराम व स्थिति", "अधिकारी: कार्यालय: अभिलेख: आदेश: प्रतिवेदन: सूचना: स्थिति: सक्रिय, लंबित, पूर्ण।"),
-    ("L70: अंडरस्कोर व कोड", "फाइल_०१, पाठ_८०, टाइपिंग_ट्यूटर, यूजर_डेटा, त्रुटि_टेस्ट, मोड_v1।"),
-    ("L71: Shift + नंबर रो", "! @ # $ % ^ & * ( ) _ + ~ | { } : \" < > ? १ २ ३ ४ ५ ६ ७ ८ ९ ०"),
-    ("L72: Full Keyboard Drill", "भूमि सुधार उप-समाहर्ता न्यायालय में २०२६ में १२३४५६७८९० अभिलेखों का सत्यापन किया गया।"),
-    ("L73: Full Keyboard Speed", "बिना कीबोर्ड देखे टाइपिंग करने का अभ्यास करने से गति और सटीकता दोनों में तेजी से बढ़ोतरी होती है।"),
-    ("L74: Full Keyboard Accuracy", "प्रत्येक शब्द और मात्रा को ध्यानपूर्वक देखकर टाइपिंग करें ताकि अंतिम मैटर पूरी तरह शुद्ध और त्रुटिरहित हो।"),
-    ("L75: अनुच्छेद 1 सामान्य", "बिना कीबोर्ड देखे टाइपिंग सीखने में शुरुआत में धैर्य की आवश्यकता होती है, लेकिन जब उंगलियों को प्रत्येक की की सही स्थिति याद हो जाती है तो टाइपिंग आसान हो जाती है। प्रतिदिन नियमित अभ्यास करते रहना चाहिए।"),
-    ("L76: अनुच्छेद 2 कार्यालय", "प्रशासनिक कार्यालयों में अभिलेखों का सही संधारण और समय पर सत्यापन अत्यंत आवश्यक है। प्रत्येक आवेदन, पंजी प्रविष्टि और संदर्भ संख्या को शुद्धता से दर्ज किया जाना चाहिए ताकि आवश्यकता पड़ने पर फाइल तुरंत उपलब्ध हो सके।"),
-    ("L77: अनुच्छेद 3 न्यायालय", "न्यायिक और राजस्व वादों की सुनवाई के दौरान स्पष्ट और सटीक अभिलेख महत्वपूर्ण भूमिका निभाते हैं। बयान, तिथियां, वाद संख्या और संलग्न कागजातों को सावधानी से दर्ज करना चाहिए ताकि आदेश पारित करने में कोई भ्रम न रहे।"),
-    ("L78: अनुच्छेद 4 गति परीक्षा", "एक कुशल टाइपिस्ट गति और शुद्धता के बीच संतुलन बनाए रखता है। बिना सोचे तेज टाइपिंग करने से अधिक त्रुटियां होती हैं, जबकि स्थिर और नियंत्रित लय से अधिक शुद्ध गति और साफ मैटर प्राप्त होता है।"),
-    ("L79: अनुच्छेद 5 धैर्य अभ्यास", "लंबे समय तक एकाग्रता बनाए रखना समयबद्ध टाइपिंग परीक्षा में अच्छे प्रदर्शन की कुंजी है। शब्दों के बीच उंगलियों को हल्का रखें और आगे के शब्दों पर नजर रखें ताकि हाथ सुचारु रूप से चलते रहें।"),
-    ("L80: अनुच्छेद 6 अंतिम परीक्षा", "स्पर्श टाइपिंग एक व्यावहारिक कौशल है जो प्रतिदिन ड्राफ्टिंग, डेटा एंट्री और पत्राचार में समय बचाता है। अक्षरों, मात्राओं, अंकों और पूरे अनुच्छेदों का नियमित अभ्यास आपको किसी भी परीक्षा के लिए तैयार करता है।"),
+MANGAL_SEEDS = [
+    ("L1: Light Mangal ि र", "किर रकि ककिर ररकिर किरर रककिर किरक ररकक ककरक ररकक रककिर ककिरक रकिरक ररककिर रककिर"),
+    ("L2: Light Mangal ा क", "काका काकका ककाका काकाक ककाका काकका काकका काकका ककाका काकका काकका काकका काकका काकका काकका"),
+    ("L3: Light Mangal े स", "सेसे सेससे सेसेस सेसेक सेससे सेसेस सेसेस सेससे सेसेस सेससे सेससे सेसेस सेससे सेसेस सेससे"),
+    ("L4: Light Mangal ं य", "यंयं यंययं यंयंय यंयंयं यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय"),
+    ("L5: Light क का कि की", "क का कि की काक किक कीक किका काकि किकि कीकी ककाक किकाक कि की का की कि की काक किक कीक किका"),
+    ("L6: Light स से यं य", "स से यं य सस सेसे यंयं यय सयं सेयं यसं यंसे सेयं ससे यंय सस सेसे यंयं यय सयं सेयं यसं"),
+    ("L7: Light क ख ग घ", "क ख ग घ च छ ज झ ट ठ ठ ज च घ ख क ग घ च छ ज झ ट ठ कख गघ चछ जझ टठ कग चज टठ घझ"),
+    ("L8: Light ु ू", "कु कू कुकु कुकू कुकुउ कुकूउ कुकुक कुकूउ कुकुक कुकूउ कुकूउ कुकुक कुकुक कुकूउ कुकुक कुकूउ कुकुक"),
+    ("L9: Light Home + ु ू", "क ख ग घ च छ ज झ ट ठ कु कू कख गघ चछ जझ टठ कुकू कग चज टठ घझ छठ कुकू कुकुक कखगघ"),
+    ("L10: Light Home Full", "क ख ग घ च छ ज झ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह कख गघ चछ जझ टठ तथ दध"),
+    ("L11: Light Home Speed", "कख गघ चछ जझ टठ तथ दध पफ बभ मय रल क ख ग घ च छ ज झ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल"),
+    ("L12: Light त न", "तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन तत नन"),
+    ("L13: Light म प", "मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म मम पप"),
+    ("L14: Light ू व", "वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू"),
+    ("L15: Light ु च", "चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु"),
+    ("L16: Light त न म प", "तन मप तमन पनत मनप पतम नतप मतन पमत तपन नमत तनम पमन तन मप तमन पनत मनप पतम नतप मतन"),
+    ("L17: Light व च ु ू", "वच चव वुच चुव वूच चूप वचव चुवच वुचव चवु वच चव वुच चुव वूच चूप वचव चुवच वुचव चवु"),
+    ("L18: Light Top Row", "प व च त न म पवन चमन नमन वतन चरण तपन पवन चमन नमन वतन चरण तपन पवन चमन नमन वतन चरण"),
+    ("L19: Light Top + Home", "पवन चमन नमन वतन चरण तपन कमल नयन घर चल अब कल फल जल मन धन कर भर पवन चमन नमन वतन"),
+    ("L20: Light Top + Home Mix", "कमल नयन घर चल अब कल फल जल पवन चमन नमन वतन चरण तपन मन धन कर भर हर पल जन धन वन"),
+    ("L21: Light Top Complete", "प व च त न म र ल व स य ह पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम पवन चमन"),
+    ("L22: Light Home + Top", "कमल नयन घर चल पवन चमन नमन वतन सरस सरल नगर खबर महल कलम अब कल फल जल मन धन कर भर"),
+    ("L23: Light Home + Top Speed", "कमल नयन घर चल पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम मन धन कर भर हर पल"),
+    ("L24: Light Home + Top Acc", "कमल नयन घर चल पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम अब कल फल जल मन धन"),
+    ("L25: Light अ उ", "अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ"),
+    ("L26: Light ब ए", "बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए बब एए"),
+    ("L27: Light ग ण", "गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण गणाग"),
+    ("L28: Light र ध", "रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध रर धध"),
+    ("L29: Light अ उ ब ए", "अब एब उब बए अबल एबक उबग बएव अब एब उब बए अबल एबक उबग बएव अब एब उब बए अबल एबक"),
+    ("L30: Light ग ण र ध", "गर धर गण रध गरम धरम गणन रथ गर धर गण रध गरम धरम गणन रथ गर धर गण रध गरम धरम"),
+    ("L31: Medium इ द", "इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद इइ दद"),
+    ("L32: Medium अ उ ब ए इ", "अब इब उब बइ अबल इबक उबग बइव अब इब उब बइ अबल इबक उबग बइव अब इब उब बइ अबल इबक"),
+    ("L33: Medium ग ण र ध द", "गर दर गण दन गरम दरम गणन दशन गर दर गण दन गरम दरम गणन दशन गर दर गण दन गरम दरम"),
+    ("L34: Medium Bottom Full", "अ इ उ ए ण ध ग ब द र अबल इबक उबग बएव गरम धरम गणन दशन अबल इबक उबग बएव गरम धरम"),
+    ("L35: Medium Home + Bottom", "कमल नयन घर चल अबल इबक उबग बएव गरम धरम गणन दशन अब कल फल जल मन धन कर भर"),
+    ("L36: Medium 3 Rows Basic", "कमल नयन घर चल पवन चमन नमन वतन अबल इबक उबग बएव गरम धरम गणन दशन सरस सरल नगर खबर"),
+    ("L37: Medium 3 Rows Mix", "कमल नयन पवन चमन अबल इबक सरस सरल नगर खबर महल कलम दशन गणन घर चल अब कल फल जल मन धन"),
+    ("L38: Medium Shift स्वर", "आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार आ ई ऊ ऐ औ आऊ ईद ऊन"),
+    ("L39: Medium Shift संयुक्त", "क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम क्ष त्र ज्ञ श्र"),
+    ("L40: Medium Shift + 3 Rows", "क्षमा त्रुटि ज्ञान श्रम आऊ ईद ऊन ऐन औजार कमल नयन पवन चमन सरस सरल नगर खबर महल कलम"),
+    ("L41: Medium Shift चिह्न", "ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच"),
+    ("L42: Medium विराम चिह्न", "। , . : ; ? । , . : ; ? । , . : ; ? । , . : ; ? । , . : ; ? । , . : ; ?"),
+    ("L43: Medium Shift + Home", "आऊ ईद ऊन ऐन औजार कमल नयन घर चल अब कल फल जल मन धन कर भर हर पल जन धन वन"),
+    ("L44: Medium Shift + Top", "क्षमा त्रुटि ज्ञान श्रम पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम"),
+    ("L45: Medium Shift + Bottom", "अबल इबक उबग बएव गरम धरम गणन दशन क्षमा त्रुटि ज्ञान श्रम आऊ ईद ऊन ऐन औजार"),
+    ("L46: Medium Office Words", "अधिकारी कार्यालय अभिलेख आदेश आवेदन प्रतिवेदन सुनवाई प्रमाण पत्र संशोधन पंजीकरण क्षमा त्रुटि ज्ञान श्रम"),
+    ("L47: Medium अंक १-४", "११ २२ ३३ ४४ १२३४ ४३२१ १२१२ ३४३४ १३२४ ४२३१ ११ २२ ३३ ४४ १२३४ ४३२१ १२१२ ३४३४ १३२४ ४२३१"),
+    ("L48: Medium अंक ५-६", "५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६ ५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६ ५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६"),
+    ("L49: Medium अंक १-६", "१२३४५६ ६५४३२१ १२ ३४ ५६ १३५ २४६ १४ २५ ३६ १२३४५६ ६५४३२१ १२ ३४ ५६ १३५ २४६ १४ २५ ३६"),
+    ("L50: Medium अंक ७-०", "७७ ८८ ९९ ०० ७८९० ०९८७ ७८७८ ९०९० ७९८० ०८९७ ७७ ८८ ९९ ०० ७८९० ०९८७ ७८७८ ९०९० ७९८० ०८९७"),
+    ("L51: Medium पूरे अंक", "१२३४५६७८९० ०९८७६५४३२१ १२३ ४५६ ७८९ ०१२ १० २० ३० ४० ५० ६० ७० ८० ९० १०० २०२६ १९८९ १९९१"),
+    ("L52: Medium चिह्न !@#$%^", "! @ # $ % ^ ^ $ # @ ! !@ #$ %^ !@# $%^ !@#$%^ ^%$#@! ! @ # $ % ^ ^ $ # @ !"),
+    ("L53: Medium चिह्न &*()_+", "& * ( ) _ + + _ ) ( * & &* () _+ &*( )_+ &*()_+ +_)(*& & * ( ) _ + + _ ) ( * &"),
+    ("L54: Medium Shift + अंक", "!@#$%^&*()_+ +_)(*&^%$#@! १२३४५६७८९० !@# $%^ &*( )_+ २०२६ @ १००% #१ & #२"),
+    ("L55: Medium कार्यालय अंक", "आदेश संख्या १०२४ दिनांक २०-११-२०२६ के तहत ३५० अभिलेखों की जांच ४५ दिनों में पूर्ण करनी है।"),
+    ("L56: Medium अभिलेख अंक", "संदर्भ संख्या ८८/२०२६: १२ फाइलों, ४५ पृष्ठों और ९० अभिलेखों का सत्यापन आज ०५:३० बजे तक करें।"),
+    ("L57: Medium गति अनुच्छेद 1", "प्रतिदिन अभ्यास करने से उंगलियों की गति और सटीकता दोनों में सुधार होता है। जल्दबाजी के बजाय शुद्धता पर ध्यान दें।"),
+    ("L58: Medium गति अनुच्छेद 2", "कार्यालयीन कार्य में सही वर्तनी और समयबद्धता बहुत महत्वपूर्ण होती है। किसी भी आदेश या प्रतिवेदन में त्रुटि से बचना चाहिए।"),
+    ("L59: Medium गति अनुच्छेद 3", "अभिलेखों के सत्यापन तथा पंजीकरण का कार्य नियमानुसार और पारदर्शी तरीके से किया जाना चाहिए ताकि आवेदकों को सुविधा मिले।"),
+    ("L60: Medium गहन अनुच्छेद", "भूमि सुधार उप-समाहर्ता न्यायालय में प्राप्त आवेदनों का अभिलेखीय सत्यापन समयबद्ध रूप से किया जाता है।"),
+    ("L61: Hard लय व गति", "लय और संतुलित गति से टाइपिंग करने पर लंबे अनुच्छेद भी आसानी से और बिना थकावट के लिखे जा सकते हैं।"),
+    ("L62: Hard धैर्य अनुच्छेद", "लंबे समय तक टाइपिंग करते समय कलाइयों को सीधा रखें, उंगलियों को हल्का रखें और स्रोत मैटर पर ध्यान बनाए रखें।"),
+    ("L63: Hard अंक व विराम", "१०, २०, ३०, ४०, ५०; १००, २५०, ५००, १०००। दिनांक: २०/११/२०२६; समय: १६:२०; कोड: KT-80-MN।"),
+    ("L64: Hard उच्च अंक व कोड", "७८९०, ८९०१, ९०१२, ७०८९, ८०९७, ९८७०, १२३४५६७८९०, ०९८७६५४३२१, संदर्भ-२०२६/११/२०।"),
+    ("L65: Hard अभिलेख शुद्धता", "अभिलेख संख्या #४०९२ (२०२६): १,२५० मदों का निस्तारण ९९.४% शुद्धता के साथ ०५:०० मिनट में किया गया।"),
+    ("L66: Hard नंबर रो ड्रिल", "११ २२ ३३ ४४ ५५ ६६ ७७ ८८ ९९ ०० १२३ ४५६ ७८९ ०१२ ३४५ ६७८ ९०१ २०२६ १०० ५०० १०००"),
+    ("L67: Hard स्लैश व उद्धरण", "क/ख ग/घ च/छ ? / : ; ' \" क/ख ? च:छ ; ग'घ \" १/२ ३/४ ५/६ ७/८ ९/१० \"कार्यालय\" 'आदेश'"),
+    ("L68: Hard हाइफन व कोष्ठक", "उप-समाहर्ता, दाखिल-खारिज, दिन-प्रतिदिन; मद-१, मद-२, मद-३; प्रारूप, अंतिम, जांच।"),
+    ("L69: Hard विराम व स्थिति", "अधिकारी: कार्यालय: अभिलेख: आदेश: प्रतिवेदन: सूचना: स्थिति: सक्रिय, लंबित, पूर्ण।"),
+    ("L70: Hard अंडरस्कोर व कोड", "फाइल_०१, पाठ_८०, टाइपिंग_ट्यूटर, यूजर_डेटा, त्रुटि_टेस्ट, मोड_v1।"),
+    ("L71: Hard Shift + नंबर रो", "! @ # $ % ^ & * ( ) _ + ~ | { } : \" < > ? १ २ ३ ४ ५ ६ ७ ८ ९ ०"),
+    ("L72: Hard Full Keyboard", "भूमि सुधार उप-समाहर्ता न्यायालय में २०२६ में १२३४५६७८९० अभिलेखों का सत्यापन किया गया।"),
+    ("L73: Hard गति अनुच्छेद", "बिना कीबोर्ड देखे टाइपिंग करने का अभ्यास करने से गति और सटीकता दोनों में तेजी से बढ़ोतरी होती है।"),
+    ("L74: Hard शुद्धता अनुच्छेद", "प्रत्येक शब्द और मात्रा को ध्यानपूर्वक देखकर टाइपिंग करें ताकि अंतिम मैटर पूरी तरह शुद्ध और त्रुटिरहित हो।"),
+    ("L75: Hard सामान्य अनुच्छेद", "बिना कीबोर्ड देखे टाइपिंग सीखने में शुरुआत में धैर्य की आवश्यकता होती है, लेकिन जब उंगलियों को प्रत्येक की की सही स्थिति याद हो जाती है तो टाइपिंग आसान हो जाती है। प्रतिदिन नियमित अभ्यास करते रहना चाहिए।"),
+    ("L76: Hard कार्यालय अनुच्छेद", "प्रशासनिक कार्यालयों में अभिलेखों का सही संधारण और समय पर सत्यापन अत्यंत आवश्यक है। प्रत्येक आवेदन, पंजी प्रविष्टि और संदर्भ संख्या को शुद्धता से दर्ज किया जाना चाहिए ताकि आवश्यकता पड़ने पर फाइल तुरंत उपलब्ध हो सके।"),
+    ("L77: Hard न्यायालय अनुच्छेद", "न्यायिक और राजस्व वादों की सुनवाई के दौरान स्पष्ट और सटीक अभिलेख महत्वपूर्ण भूमिका निभाते हैं। बयान, तिथियां, वाद संख्या और संलग्न कागजातों को सावधानी से दर्ज करना चाहिए ताकि आदेश पारित करने में कोई भ्रम न रहे।"),
+    ("L78: Hard परीक्षा अनुच्छेद", "एक कुशल टाइपिस्ट गति और शुद्धता के बीच संतुलन बनाए रखता है। बिना सोचे तेज टाइपिंग करने से अधिक त्रुटियां होती हैं, जबकि स्थिर और नियंत्रित लय से अधिक शुद्ध गति और साफ मैटर प्राप्त होता है।"),
+    ("L79: Hard दीर्घ अनुच्छेद", "लंबे समय तक एकाग्रता बनाए रखना समयबद्ध टाइपिंग परीक्षा में अच्छे प्रदर्शन की कुंजी है। शब्दों के बीच उंगलियों को हल्का रखें और आगे के शब्दों पर नजर रखें ताकि हाथ सुचारु रूप से चलते रहें।"),
+    ("L80: Hard अंतिम अनुच्छेद", "स्पर्श टाइपिंग एक व्यावहारिक कौशल है जो प्रतिदिन ड्राफ्टिंग, डेटा एंट्री और पत्राचार में समय बचाता है। अक्षरों, मात्राओं, अंकों और पूरे अनुच्छेदों का नियमित अभ्यास आपको किसी भी परीक्षा के लिए तैयार करता है।"),
 ]
+
+ENGLISH_80 = [(title, expand_long_lesson(body, repeat_count=28)) for title, body in ENGLISH_SEEDS]
+KRUTIDEV_80 = [(title, expand_long_lesson(body, repeat_count=28)) for title, body in KRUTIDEV_SEEDS]
+MANGAL_80 = [(title, expand_long_lesson(body, repeat_count=28)) for title, body in MANGAL_SEEDS]
 
 LESSONS_BY_SCRIPT = {
     "English": ENGLISH_80,
@@ -479,17 +482,6 @@ CATEGORIES = {
 
 def hash_password(password_text):
     return hashlib.sha256(password_text.encode("utf-8")).hexdigest()
-
-
-def check_internet_connection(timeout=3):
-    for url in ONLINE_CHECK_URLS:
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=timeout):
-                return True
-        except Exception:
-            continue
-    return False
 
 
 def load_json_file(path, default_factory):
@@ -575,11 +567,10 @@ class OfflineTypingTutor:
         self.setup_ui()
         self.bind_hidden_key_shortcut()
         self.refresh_user_dropdown()
-        self.apply_access_state(self.current_user())
         self.on_category_change()
+        self.apply_access_state(self.current_user(), show_popup=False)
 
     def bind_hidden_key_shortcut(self):
-        # छिपा हुआ शॉर्टकट: Ctrl + Shift + K दबाने पर की (Key) डालने का प्रॉम्प्ट खुलेगा
         self.root.bind_all("<Control-Shift-K>", lambda e: self.prompt_hidden_access_key())
         self.root.bind_all("<Control-Shift-k>", lambda e: self.prompt_hidden_access_key())
 
@@ -589,44 +580,52 @@ class OfflineTypingTutor:
     def is_user_key_authorized(self, username):
         return bool(self.users_data.get("offline_licensed", {}).get(username, False))
 
-    def has_valid_access(self, username):
-        if self.is_user_key_authorized(username):
-            return True
-        if STRICT_KEY_REQUIRED:
-            return False
-        return check_internet_connection()
-
     def set_controls_enabled(self, enabled):
+        if not self.root.winfo_exists():
+            return
         state_val = "readonly" if enabled else "disabled"
         btn_state = tk.NORMAL if enabled else tk.DISABLED
         txt_state = tk.NORMAL if enabled else tk.DISABLED
 
         for w in [self.script_combo, self.category_combo, self.lesson_combo, self.time_combo, self.mode_combo]:
-            w.config(state=state_val)
+            if w.winfo_exists():
+                w.config(state=state_val)
         for b in [self.reset_btn, self.weak_btn, self.game_btn, self.add_user_btn]:
-            b.config(state=btn_state)
-        self.input_text.config(state=txt_state)
+            if b.winfo_exists():
+                b.config(state=btn_state)
+        if self.input_text.winfo_exists():
+            self.input_text.config(state=txt_state)
 
-    def apply_access_state(self, username):
-        allowed = self.has_valid_access(username)
+    def apply_access_state(self, username, show_popup=False):
+        if not self.root.winfo_exists():
+            return
+        allowed = self.is_user_key_authorized(username)
         self.app_locked = not allowed
         if allowed:
             self.set_controls_enabled(True)
-            self.alert_label.config(text="अनुमति सक्रिय — 90%+ सटीकता पर अगला लेसन खुलेगा", fg="#15803d")
+            if self.alert_label.winfo_exists():
+                self.alert_label.config(text="अनुमति सक्रिय — 90%+ सटीकता पर अगला लेसन खुलेगा", fg="#15803d")
+            if self.input_text.winfo_exists():
+                self.input_text.focus()
         else:
             self.set_controls_enabled(False)
             self.clear_highlights()
-            self.alert_label.config(
-                text="बिना अनुमति/की के ऐप लॉक है — केवल अधिकृत व्यक्ति चला सकता है",
-                fg="#b91c1c",
-            )
-            messagebox.showwarning(
-                "अनुमति आवश्यक (Locked)",
-                f"'{username}' के लिए आपकी अनुमति की (Key) सक्रिय नहीं है।\n"
-                "यह ऐप बिना आपकी अनुमति के नहीं चलाया जा सकता।",
-            )
+            if self.alert_label.winfo_exists():
+                self.alert_label.config(
+                    text="बिना अनुमति/की के ऐप लॉक है — Ctrl+Shift+K या Help -> Activate / Key से की डालें",
+                    fg="#b91c1c",
+                )
+            if show_popup:
+                messagebox.showwarning(
+                    "अनुमति आवश्यक (Locked)",
+                    f"'{username}' के लिए आपकी अनुमति की (Key) सक्रिय नहीं है।\n"
+                    "यह ऐप बिना आपकी अनुमति के नहीं चलाया जा सकता।",
+                    parent=self.root,
+                )
 
     def prompt_hidden_access_key(self):
+        if not self.root.winfo_exists():
+            return
         u = self.current_user()
         key_input = simpledialog.askstring(
             "System Verification",
@@ -639,7 +638,8 @@ class OfflineTypingTutor:
         if key_input.strip() in MASTER_ACTIVATION_KEYS:
             self.users_data.setdefault("offline_licensed", {})[u] = True
             save_json_file(USERS_FILE, self.users_data)
-            self.apply_access_state(u)
+            self.apply_access_state(u, show_popup=False)
+            self.on_category_change()
             messagebox.showinfo("Verified", f"'{u}' के लिए अनुमति सक्रिय हो गई है।", parent=self.root)
         else:
             messagebox.showerror("Invalid Key", "की (Key) सही नहीं है।", parent=self.root)
@@ -715,7 +715,7 @@ class OfflineTypingTutor:
     def setup_ui(self):
         menubar = tk.Menu(self.root)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="About", command=lambda: messagebox.showinfo("About", "Offline Typing Tutor v1.0"))
+        help_menu.add_command(label="About", command=lambda: messagebox.showinfo("About", "Offline Typing Tutor v1.0", parent=self.root))
         help_menu.add_command(label="Activate / Key", command=self.prompt_hidden_access_key)
         menubar.add_cascade(label="Help", menu=help_menu)
         self.root.config(menu=menubar)
@@ -1027,7 +1027,7 @@ class OfflineTypingTutor:
 
     def add_new_user(self):
         if self.app_locked:
-            messagebox.showwarning("लॉक है", "पहले अनुमति की (Key) से ऐप अनलॉक करें।")
+            messagebox.showwarning("लॉक है", "पहले अनुमति की (Key) से ऐप अनलॉक करें।", parent=self.root)
             return
         name = simpledialog.askstring("नया यूज़र", "नए यूज़र का नाम लिखें:", parent=self.root)
         if not name:
@@ -1036,12 +1036,12 @@ class OfflineTypingTutor:
         if not clean_name:
             return
         if clean_name in self.users_data["users"]:
-            messagebox.showwarning("नाम मौजूद है", "इस नाम का यूज़र पहले से है। कोई दूसरा नाम चुनें।")
+            messagebox.showwarning("नाम मौजूद है", "इस नाम का यूज़र पहले से है। कोई दूसरा नाम चुनें।", parent=self.root)
             return
 
         pwd = simpledialog.askstring("पासवर्ड सेट करें", f"'{clean_name}' के लिए पासवर्ड लिखें (कम से कम 4 अक्षर):", show="*", parent=self.root)
         if not pwd or len(pwd.strip()) < 4:
-            messagebox.showwarning("कमज़ोर/खाली पासवर्ड", "कृपया कम से कम 4 अक्षरों का पासवर्ड दें।")
+            messagebox.showwarning("कमज़ोर/खाली पासवर्ड", "कृपया कम से कम 4 अक्षरों का पासवर्ड दें।", parent=self.root)
             return
 
         self.users_data["users"].append(clean_name)
@@ -1051,9 +1051,9 @@ class OfflineTypingTutor:
         self.ensure_user_data(clean_name)
         save_json_file(USERS_FILE, self.users_data)
         self.refresh_user_dropdown()
-        self.apply_access_state(clean_name)
         self.on_category_change()
-        messagebox.showinfo("यूज़र तैयार", f"'{clean_name}' की पासवर्ड-सुरक्षित प्रोफ़ाइल बन गई है।")
+        self.apply_access_state(clean_name, show_popup=False)
+        messagebox.showinfo("यूज़र तैयार", f"'{clean_name}' की पासवर्ड-सुरक्षित प्रोफ़ाइल बन गई है।", parent=self.root)
 
     def on_user_change(self, event=None):
         selected = self.user_var.get()
@@ -1069,15 +1069,15 @@ class OfflineTypingTutor:
                 parent=self.root,
             )
             if not entered or hash_password(entered) != stored_hash:
-                messagebox.showerror("गलत पासवर्ड", "पासवर्ड सही नहीं है! प्रोफ़ाइल नहीं बदली गई।")
+                messagebox.showerror("गलत पासवर्ड", "पासवर्ड सही नहीं है! प्रोफ़ाइल नहीं बदली गई।", parent=self.root)
                 self.user_var.set(self.current_user())
                 return
 
         self.users_data["active_user"] = selected
         self.ensure_user_data(selected)
         save_json_file(USERS_FILE, self.users_data)
-        self.apply_access_state(selected)
         self.on_category_change()
+        self.apply_access_state(selected, show_popup=False)
 
     def build_onscreen_keyboard(self, parent):
         kb_box = tk.LabelFrame(
@@ -1126,31 +1126,37 @@ class OfflineTypingTutor:
         self.space_btn.pack()
 
     def clear_highlights(self):
+        if not self.root.winfo_exists():
+            return
         for lbl, _, base_color in self.key_buttons.values():
-            lbl.config(bg=base_color, fg="#0f172a")
-        if self.space_btn:
+            if lbl.winfo_exists():
+                lbl.config(bg=base_color, fg="#0f172a")
+        if self.space_btn and self.space_btn.winfo_exists():
             self.space_btn.config(bg="#f1f5f9", fg="#0f172a")
         for key, val in self.hand_shapes.items():
             if key.startswith("label_"):
-                val.config(text="सक्रिय उंगली: —")
+                if val.winfo_exists():
+                    val.config(text="सक्रिय उंगली: —")
             else:
                 canvas, shape_id = val
-                canvas.itemconfig(shape_id, fill="#f1f5f9")
+                if canvas.winfo_exists():
+                    canvas.itemconfig(shape_id, fill="#f1f5f9")
 
     def highlight_finger(self, finger):
-        if self.app_locked:
+        if self.app_locked or not self.root.winfo_exists():
             return
         if finger in self.hand_shapes:
             canvas, shape_id = self.hand_shapes[finger]
-            canvas.itemconfig(shape_id, fill="#ef4444")
-        if finger.startswith("Left") and "label_L" in self.hand_shapes:
+            if canvas.winfo_exists():
+                canvas.itemconfig(shape_id, fill="#ef4444")
+        if finger.startswith("Left") and "label_L" in self.hand_shapes and self.hand_shapes["label_L"].winfo_exists():
             self.hand_shapes["label_L"].config(text=f"सक्रिय: {finger.replace('Left ', '')}")
-        elif finger.startswith("Right") and "label_R" in self.hand_shapes:
+        elif finger.startswith("Right") and "label_R" in self.hand_shapes and self.hand_shapes["label_R"].winfo_exists():
             self.hand_shapes["label_R"].config(text=f"सक्रिय: {finger.replace('Right ', '')}")
         elif finger == "Thumb":
-            if "label_L" in self.hand_shapes:
+            if "label_L" in self.hand_shapes and self.hand_shapes["label_L"].winfo_exists():
                 self.hand_shapes["label_L"].config(text="सक्रिय: Thumb (Space)")
-            if "label_R" in self.hand_shapes:
+            if "label_R" in self.hand_shapes and self.hand_shapes["label_R"].winfo_exists():
                 self.hand_shapes["label_R"].config(text="सक्रिय: Thumb (Space)")
 
     def record_error_char(self, ch):
@@ -1168,6 +1174,8 @@ class OfflineTypingTutor:
                 pass
 
     def sync_time_options_for_category(self):
+        if not self.root.winfo_exists() or not self.time_combo.winfo_exists():
+            return
         cat = self.category_var.get()
         if cat.startswith("Advance"):
             vals = ["5 Min", "10 Min", "15 Min", "20 Min"]
@@ -1187,7 +1195,11 @@ class OfflineTypingTutor:
         self.on_category_change()
 
     def on_category_change(self, event=None):
+        if not self.root.winfo_exists():
+            return
         self.sync_time_options_for_category()
+        if not self.lesson_combo.winfo_exists():
+            return
         script = self.script_var.get()
         cat = self.category_var.get()
         start_idx, end_idx = CATEGORIES[cat]
@@ -1208,7 +1220,7 @@ class OfflineTypingTutor:
         self.load_lesson_by_index(target_idx)
 
     def on_lesson_select(self, event=None):
-        if self.app_locked:
+        if self.app_locked or not self.root.winfo_exists():
             return
         script = self.script_var.get()
         cat = self.category_var.get()
@@ -1226,6 +1238,7 @@ class OfflineTypingTutor:
             messagebox.showwarning(
                 "लेसन लॉक है",
                 f"अगला लेसन खोलने के लिए पहले '{req_title}' को कम से कम {PASS_ACCURACY_THRESHOLD:.0f}% सटीकता के साथ पूरा करें।",
+                parent=self.root,
             )
             cur_pos = min(max(self.current_lesson_global_index - start_idx, 0), end_idx - start_idx - 1)
             self.lesson_var.set(self.lesson_combo["values"][cur_pos])
@@ -1240,6 +1253,8 @@ class OfflineTypingTutor:
         self.set_practice_text(content, label_text=f"{self.current_user()} | {title} (90%+ Acc. से अगला खुलेगा)")
 
     def set_practice_text(self, content, label_text=""):
+        if not self.root.winfo_exists():
+            return
         script = self.script_var.get()
         font_style = self.get_script_font(script, self.word_font_size)
         input_font = self.get_script_font(script, max(13, self.word_font_size - 2))
@@ -1252,7 +1267,7 @@ class OfflineTypingTutor:
         self.reset_test(custom_status=label_text or None)
 
     def practice_weak_keys(self):
-        if self.app_locked:
+        if self.app_locked or not self.root.winfo_exists():
             return
         script = self.script_var.get()
         user = self.current_user()
@@ -1263,6 +1278,7 @@ class OfflineTypingTutor:
             messagebox.showinfo(
                 "कमज़ोर कीज़ डेटा नहीं है",
                 f"{user} के लिए {script} में अभी तक कोई गलती दर्ज नहीं हुई है। पहले थोड़ा टाइप करें, फिर यह बटन आपके सबसे ज़्यादा गलत होने वाले अक्षरों का प्रैक्टिस सेट बना देगा।",
+                parent=self.root,
             )
             return
 
@@ -1275,11 +1291,11 @@ class OfflineTypingTutor:
                 drill_items.append(top_chars[i] + top_chars[i + 1])
 
         random.shuffle(drill_items)
-        drill_text = " ".join(drill_items * 3)
+        drill_text = " ".join(drill_items * 15)
         self.set_practice_text(drill_text, label_text=f"{user} — कमज़ोर कीज़ ({script}): {' '.join(top_chars)}")
 
     def open_game_window(self):
-        if self.app_locked:
+        if self.app_locked or not self.root.winfo_exists():
             return
         script = self.script_var.get()
         user = self.current_user()
@@ -1386,6 +1402,8 @@ class OfflineTypingTutor:
         return None
 
     def update_target_highlights(self):
+        if not self.root.winfo_exists():
+            return
         target = self.target_text.get("1.0", "end-1c")
         typed = self.input_text.get("1.0", "end-1c")
 
@@ -1417,8 +1435,9 @@ class OfflineTypingTutor:
 
     def update_finger_guide(self):
         self.clear_highlights()
-        if self.app_locked:
-            self.finger_label.config(text="उंगली गाइड: लॉक (Key आवश्यक)")
+        if self.app_locked or not self.root.winfo_exists():
+            if self.finger_label.winfo_exists():
+                self.finger_label.config(text="उंगली गाइड: लॉक (Key आवश्यक)")
             return
 
         script = self.script_var.get()
@@ -1469,6 +1488,8 @@ class OfflineTypingTutor:
             self.finger_label.config(text=f"अगला अक्षर ({script}): '{next_char}'")
 
     def reset_test(self, custom_status=None):
+        if not self.root.winfo_exists():
+            return
         self.timer_running = False
         self.start_time = None
         self.last_wrong_char = None
@@ -1501,6 +1522,8 @@ class OfflineTypingTutor:
         self.input_text.focus()
 
     def update_timer(self):
+        if self.app_locked or not self.root.winfo_exists():
+            return
         if self.timer_running and self.time_left > 0:
             self.time_left -= 1
             self.timer_label.config(text=f"{format_mm_ss(self.time_left)} Min.")
@@ -1580,6 +1603,7 @@ class OfflineTypingTutor:
                 f"यूज़र: {self.current_user()}\n"
                 f"{self.wpm_label.cget('text')}  |  {self.acc_label.cget('text')}\n"
                 f"{self.err_label.cget('text')}  |  {self.signs_label.cget('text')}{extra_msg}",
+                parent=self.root,
             )
             if unlocked_new:
                 next_idx = self.current_lesson_global_index + 1
@@ -1594,6 +1618,7 @@ class OfflineTypingTutor:
                 f"अगला लेसन खोलने के लिए पूरा मैटर और कम से कम {PASS_ACCURACY_THRESHOLD:.0f}% सटीकता ज़रूरी है।\n\n"
                 f"आपकी सटीकता: {acc:.1f}%\n"
                 f"{self.wpm_label.cget('text')}  |  {self.err_label.cget('text')}",
+                parent=self.root,
             )
 
 
