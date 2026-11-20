@@ -259,7 +259,7 @@ class OfflineTypingTutor:
     def __init__(self, root):
         self.root = root
         self.root.title("Offline Typing Tutor — English | Kruti Dev 010 | Mangal")
-        self.root.geometry("1180x850")
+        self.root.geometry("1220x880")
         self.root.configure(bg="#eef2f6")
 
         self.users_data = load_json_file(USERS_FILE, default_users)
@@ -327,7 +327,7 @@ class OfflineTypingTutor:
         return ("Consolas", size)
 
     def setup_ui(self):
-        header = tk.Frame(self.root, bg="#1e3a5f", pady=8, padx=14)
+        header = tk.Frame(self.root, bg="#1e3a5f", pady=7, padx=14)
         header.pack(fill=tk.X)
 
         tk.Label(
@@ -371,7 +371,7 @@ class OfflineTypingTutor:
             pady=3,
         ).pack(side=tk.RIGHT)
 
-        ctrl = tk.Frame(self.root, bg="#eef2f6", pady=6, padx=14)
+        ctrl = tk.Frame(self.root, bg="#eef2f6", pady=5, padx=14)
         ctrl.pack(fill=tk.X)
 
         tk.Label(ctrl, text="यूज़र:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
@@ -462,8 +462,8 @@ class OfflineTypingTutor:
             pady=2,
         ).pack(side=tk.RIGHT)
 
-        stats_bar = tk.Frame(self.root, bg="#ea580c", pady=6, padx=10)
-        stats_bar.pack(fill=tk.X, padx=14, pady=(0, 6))
+        stats_bar = tk.Frame(self.root, bg="#ea580c", pady=5, padx=10)
+        stats_bar.pack(fill=tk.X, padx=14, pady=(0, 5))
 
         self.timer_label = tk.Label(
             stats_bar, text="01:00 Min.", font=("Segoe UI", 12, "bold"), bg="#ea580c", fg="white"
@@ -490,8 +490,8 @@ class OfflineTypingTutor:
         )
         self.acc_label.pack(side=tk.LEFT, expand=True)
 
-        guide_bar = tk.Frame(self.root, bg="#ffffff", pady=6, padx=12, bd=1, relief=tk.SOLID)
-        guide_bar.pack(fill=tk.X, padx=14, pady=(0, 6))
+        guide_bar = tk.Frame(self.root, bg="#ffffff", pady=5, padx=12, bd=1, relief=tk.SOLID)
+        guide_bar.pack(fill=tk.X, padx=14, pady=(0, 5))
 
         self.finger_label = tk.Label(
             guide_bar,
@@ -513,17 +513,17 @@ class OfflineTypingTutor:
 
         self.target_text = tk.Text(
             self.root,
-            height=5,
+            height=4,
             font=("Consolas", 18),
             wrap=tk.WORD,
             bg="#f8fafc",
             fg="#0f172a",
             padx=12,
-            pady=10,
+            pady=8,
             bd=2,
             relief=tk.GROOVE,
         )
-        self.target_text.pack(fill=tk.X, padx=14, pady=(0, 6))
+        self.target_text.pack(fill=tk.X, padx=14, pady=(0, 5))
         self.target_text.tag_config("correct", foreground="#15803d", background="#dcfce7")
         self.target_text.tag_config("wrong", foreground="#b91c1c", background="#fee2e2")
         self.target_text.tag_config("current", foreground="#000000", background="#93c5fd", underline=True)
@@ -531,25 +531,25 @@ class OfflineTypingTutor:
 
         self.input_text = tk.Text(
             self.root,
-            height=3,
+            height=2,
             font=("Consolas", 17),
             wrap=tk.WORD,
             bg="#ffffff",
             fg="#0f172a",
             padx=12,
-            pady=8,
+            pady=6,
             bd=2,
             relief=tk.GROOVE,
         )
-        self.input_text.pack(fill=tk.X, padx=14, pady=(0, 8))
+        self.input_text.pack(fill=tk.X, padx=14, pady=(0, 6))
         self.input_text.bind("<KeyPress>", self.on_key_press)
         self.input_text.bind("<KeyRelease>", self.on_key_release)
 
-        bottom_panel = tk.Frame(self.root, bg="#eef2f6", padx=14, pady=4)
+        bottom_panel = tk.Frame(self.root, bg="#eef2f6", padx=14, pady=2)
         bottom_panel.pack(fill=tk.BOTH, expand=True)
 
         self.left_hand_dots = self.build_hand_panel(bottom_panel, "बायाँ हाथ (Left Hand)", side=tk.LEFT)
-        kb_center = tk.Frame(bottom_panel, bg="#eef2f6", padx=8)
+        kb_center = tk.Frame(bottom_panel, bg="#eef2f6", padx=6)
         kb_center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.build_onscreen_keyboard(kb_center)
         self.right_hand_dots = self.build_hand_panel(bottom_panel, "दायाँ हाथ (Right Hand)", side=tk.RIGHT)
@@ -595,7 +595,7 @@ class OfflineTypingTutor:
             fg="#1e3a5f",
             padx=8,
             pady=6,
-            width=165,
+            width=155,
         )
         frame.pack(side=side, fill=tk.Y)
         frame.pack_propagate(False)
@@ -609,18 +609,18 @@ class OfflineTypingTutor:
         ]
         dots = {}
         for f_key, f_label in fingers:
-            row = tk.Frame(frame, bg="#ffffff", pady=3)
+            row = tk.Frame(frame, bg="#ffffff", pady=4)
             row.pack(fill=tk.X)
             dot = tk.Label(row, text="  ", bg="#e2e8f0", relief=tk.SOLID, bd=1, width=3)
             dot.pack(side=tk.LEFT, padx=(0, 6))
-            tk.Label(row, text=f_label, font=("Segoe UI", 8, "bold"), bg="#ffffff", fg="#334155").pack(side=tk.LEFT)
+            tk.Label(row, text=f_label, font=("Segoe UI", 9, "bold"), bg="#ffffff", fg="#334155").pack(side=tk.LEFT)
             dots[f_key] = dot
 
-        thumb_row = tk.Frame(frame, bg="#ffffff", pady=6)
+        thumb_row = tk.Frame(frame, bg="#ffffff", pady=8)
         thumb_row.pack(fill=tk.X)
         t_dot = tk.Label(thumb_row, text="  ", bg="#e2e8f0", relief=tk.SOLID, bd=1, width=3)
         t_dot.pack(side=tk.LEFT, padx=(0, 6))
-        tk.Label(thumb_row, text="अंगूठा (Space)", font=("Segoe UI", 8, "bold"), bg="#ffffff", fg="#334155").pack(
+        tk.Label(thumb_row, text="अंगूठा (Space)", font=("Segoe UI", 9, "bold"), bg="#ffffff", fg="#334155").pack(
             side=tk.LEFT
         )
         dots["Thumb"] = t_dot
@@ -629,42 +629,42 @@ class OfflineTypingTutor:
     def build_onscreen_keyboard(self, parent):
         kb_box = tk.LabelFrame(
             parent,
-            text="ऑन-स्क्रीन कीबोर्ड (पीला/लाल = सक्रिय की)",
-            font=("Segoe UI", 9, "bold"),
+            text="ऑन-स्क्रीन कीबोर्ड (पीला = अगली की | लाल = गलत की)",
+            font=("Segoe UI", 10, "bold"),
             bg="#ffffff",
             fg="#1e3a5f",
-            padx=6,
-            pady=5,
+            padx=8,
+            pady=6,
         )
         kb_box.pack(fill=tk.BOTH, expand=True)
 
         for row in KEYBOARD_ROWS:
             r_frame = tk.Frame(kb_box, bg="#ffffff")
-            r_frame.pack(pady=1)
+            r_frame.pack(pady=2)
             for normal_ch, shift_ch, finger, base_color in row:
                 lbl = tk.Label(
                     r_frame,
                     text=f"{normal_ch}\n{shift_ch}",
-                    width=5,
-                    height=2,
-                    font=("Consolas", 8, "bold"),
+                    width=7,
+                    height=3,
+                    font=("Consolas", 10, "bold"),
                     bg=base_color,
                     fg="#0f172a",
                     bd=1,
                     relief=tk.RAISED,
                 )
-                lbl.pack(side=tk.LEFT, padx=1)
+                lbl.pack(side=tk.LEFT, padx=2)
                 self.key_buttons[normal_ch.lower()] = (lbl, finger, base_color)
                 self.key_buttons[shift_ch] = (lbl, finger, base_color)
 
         space_row = tk.Frame(kb_box, bg="#ffffff")
-        space_row.pack(pady=2)
+        space_row.pack(pady=4)
         self.space_btn = tk.Label(
             space_row,
             text="SPACEBAR (Thumb / अंगूठा)",
-            width=46,
-            height=1,
-            font=("Segoe UI", 8, "bold"),
+            width=68,
+            height=2,
+            font=("Segoe UI", 9, "bold"),
             bg="#f1f5f9",
             fg="#0f172a",
             bd=1,
