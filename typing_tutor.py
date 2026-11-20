@@ -1,10 +1,12 @@
+import hashlib
 import json
 import os
 import random
 import sys
 import time
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog, ttk
+import urllib.request
+from tkinter import messagebox, simpledialog, ttk
 
 
 def get_app_dir():
@@ -14,27 +16,24 @@ def get_app_dir():
 
 
 APP_DIR = get_app_dir()
-LESSONS_FILE = os.path.join(APP_DIR, "typing_lessons.json")
 STATS_FILE = os.path.join(APP_DIR, "typing_stats.json")
 USERS_FILE = os.path.join(APP_DIR, "typing_users.json")
 
-DEFAULT_LESSONS = {
-    "English": {
-        "Lesson 1 - Home Row (asdf jkl;)": "asdf jkl; asdf jkl; ff jj dd kk ss ll aa ;; ask lad fall flask salad dad sad fad",
-        "Lesson 2 - Top & Bottom Row": "qwerty uiop zxcv bnm the quick brown fox jumps over the lazy dog pack box with five dozen liquor jugs",
-        "Lesson 3 - Official & Speed": "The Deputy Collector Land Reforms court hears appeals regarding land mutation and boundary disputes in the sub-division.",
-    },
-    "Kruti Dev 010": {
-        "Lesson 1 - Home Row (d s h f t y r k l ;)": "d s h f t y r k l ; d s h f t y r k l ; dkj dkj gkj lkj dgk fdj fdj fdl",
-        "Lesson 2 - Matra & Conjuncts": "fdrkuh] fdrkuh] vf/kdkjh] dk;kZy;] vfHkys[k] vkns'k] lwpuk] izfrosnu] Kku] {ks=] Jheku",
-        "Lesson 3 - Court & Office Matter": "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA vfHkys[kksa dh tkap dj fu;ekuqlkj vkns'k ikfjr fd;k tkrk gSA",
-    },
-    "Mangal": {
-        "Lesson 1 - Basic Words": "कमल नयन घर चल अब कल फल जल मन धन कर भर हर पल जन धन वन",
-        "Lesson 2 - Office & Matra Words": "अधिकारी कार्यालय अभिलेख आदेश आवेदन प्रतिवेदन सुनवाई प्रमाण पत्र संशोधन पंजीकरण",
-        "Lesson 3 - Official Paragraph": "भूमि सुधार उप-समाहर्ता न्यायालय में प्राप्त आवेदनों का अभिलेखीय सत्यापन समयबद्ध रूप से किया जाता है।",
-    },
+PASS_ACCURACY_THRESHOLD = 90.0
+
+# अपनी गोपनीय अनुमति की (Access Keys) यहाँ रखें (इंस्टॉल के समय नहीं मांगी जाएंगी)
+MASTER_ACTIVATION_KEYS = {
+    "ANAND-OFFLINE-2026",
+    "VKSU-TYPING-KEY-99",
 }
+
+# True रखने पर बिना आपकी Key के ऐप (ऑनलाइन हो या ऑफलाइन) नहीं चलेगा
+STRICT_KEY_REQUIRED = True
+
+ONLINE_CHECK_URLS = [
+    "https://www.google.com",
+    "https://1.1.1.1",
+]
 
 GAME_WORDS = {
     "English": [
@@ -216,6 +215,282 @@ KRUTIDEV_KEY_MAP = {
     "?": ("?", "Right Pinky", "ध्"),
 }
 
+ENGLISH_80 = [
+    ("L1: Keys f j", "ffjfj ffjjf jffjj jjfjf jjffj fjjfj ffjjf fjjff fjfjf fjjff jfjjf ffjjf jfjfj jjffj jffjf jffjf fjfjf jfjjf jjffj jfjff"),
+    ("L2: Keys d k", "ddkkd kdkdd kddkd ddkdk kdkkd dkkdk dkdkd dkkdk kddkd kddkk kkddk ddkdk dkkdd kkdkd dkdkk dkkdd kddkd kddkk ddkdk kkddk"),
+    ("L3: Keys s l", "llssl sslls lssll sslls sslsl slsls llssl lssls sllss sllsl llsls slsls lslss sllsl lssls lslls sslsl slsls lslsl sllsl"),
+    ("L4: Keys a ;", "aa;;a a;;aa ;aa;; ;;a;a ;a;a; aa;;a a;;a; a;;aa a;;a; aa;a; ;a;a; a;a;; a;;a; a;;a; a;;;a ;;a;a ;a;a; a;a;a a;;a; a;;a;"),
+    ("L5: Keys f j d k", "ffjd dkfj jdfk kdfd jfjk dksf jfkd dkfs fjjd kffj dkkd jfdk sflj dkjf kdlf jskd flkj djfs kljd fjks dklf"),
+    ("L6: Keys s l a ;", "sl;a a;ls l;as ;sla sals l;sa as;l ;las slal ;asl lsa; asla ;l;a slas ;l;a sa;l l;as a;sl ;asl l;sa a;ls s;al l;as"),
+    ("L7: Drill Home Row 1", "asdf jkl; asdf jkl; ffjj ddkk ssll aa;; fjdk sla; ask lad fall flask salad dad sad fad jakal lass flask"),
+    ("L8: Keys g h", "gghhg hggdd hhggf ggffh hhjjg gghjh hhfgd ggkls hhaj; gghgh hggfg hhjkd ggsl; hhdfj gghgh ggjkl hhdsa ;lkjh"),
+    ("L9: Drill Home + g h", "asdfgh jkl;gh fg hj dkgf slhj afgk ;lhj ghfjdk ghsla; had flagash gag half hall dash gash flash"),
+    ("L10: Drill Home Full", "asdfghjkl; ;lkjhgfdsa ffjj ddkk ssll aa;; gghh ask dad lad gag had jakal flask salad dash half gash"),
+    ("L11: Home Row Speed", "ffjjddkkssllaa;;gghh fjdksl;gh asdfghjkl; asdfghjkl; ask lad fall flask salad dad sad fad gag half"),
+    ("L12: Keys r u", "rruur urrur uruur rruur urrur rruur rruur urrur urrur rruur urrur urrur urruu uurru urrur urrur rruuu rruur rruur uurru"),
+    ("L13: Keys e i", "eeiie ieeii ieeie eeiei eieie eieie eeiie ieeie eii ee eieil ieeie ieeie ieeii iieei ieeie ieeie eeiii eeiei eeiei iieei"),
+    ("L14: Keys w o", "wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow oowwo owwow owwow wwooo wwoow owwow oowwo"),
+    ("L15: Keys q p", "qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq ppqqp pqqpp pqqpp qqppp qqppq qqppq ppqqp"),
+    ("L16: Keys r u e i", "ru ei ruei iure erui irue ruri eiei ruie ireu ruer eiru urie euri rieu urei riee urii eerr iiuu ruei iure"),
+    ("L17: Keys w o q p", "wo qp woqp pqow owpq qpow wowo qpqp woip qopu wopo qpip owqo pqwo wopq qpow woow qppq woqp pqow owpq qpow"),
+    ("L18: Drill Top Row", "qwertyuiop poiuytrewq qwer tyui opqw erui wopq true wire quiet power poor rope pour pure trip quit"),
+    ("L19: Drill Top + Home", "qwerty asdf uiop jkl; qwer asdf tyui jkl; opqw ;lkj true wire quiet power ask lad fall flask salad"),
+    ("L20: Top + Home Mix", "the two quick red foxes jump over the dark logs at four or five quiet hours each day with proper care"),
+    ("L21: Top Row Complete", "qwertyuiop qwertyuiop poiuytrewq poiuytrewq qwer tyui opqw erui wopq true wire quiet power rope pour pure"),
+    ("L22: Home + Top Drill", "asdf qwerty jkl; uiop fjdk ruei sl;a wopq ghhj qwer tyui opqw true wire quiet power ask lad fall flask"),
+    ("L23: Home + Top Speed", "the quick brown fox jumps over the lazy dog while four quiet workers type fast and clear words every day"),
+    ("L24: Home + Top Accuracy", "as df jk l; qw er ty ui op qwer asdf tyui jkl; opqw ;lkj fjdk ruei sl;a wopq ghhj true wire quiet power"),
+    ("L25: Keys v m", "vvm mv mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv"),
+    ("L26: Keys c ,", "cc,,c ,cc,, ,cc,, cc,c ,c,c ,c,c cc,,c ,c,c c,,cc cc,,c ,c,c ,c,c cc,,, cc,c cc,c cc,,c ,c,c ,c,c cc,,c ,c,c c,,cc"),
+    ("L27: Keys x .", "xx..x .xx.. .xx.. xx.x .x.x .x.x xx..x .x.x x..xx xx..x .x.x .x.x xx... xx.x xx.x xx..x .x.x .x.x xx..x .x.x x..xx"),
+    ("L28: Keys z /", "zz//z /zz// /zz// zz/z /z/z /z/z zz//z /z/z z//zz zz//z /z/z /z/z zz/// zz/z zz/z zz//z /z/z /z/z zz//z /z/z z//zz"),
+    ("L29: Keys v m c ,", "vm c, vm,c cm,v mvc, cvm, vmc, ,mvc c,vm mv,c cv,m vmcm ,c,c vmmv c,vm mvc, cv,m vmc, ,mvc c,vm mv,c"),
+    ("L30: Keys x . z /", "x. z/ x./z zx/. .xz/ z/x. x.z/ /zx. .z/x zx.z /.x/ x.x. z/z/ x.z/ /zx. .z/x zx/. x.z/ /zx. .z/x zx/."),
+    ("L31: Keys b n", "bbnnb nbbnn nbbnn bbnbn bnbnb bnbnb bbnnb nbbnb bnnbb bbnnb nbbnn nbbnn bbnnn bbnbn bbnbn bbnnb nbbnb bnnbb bbnbn"),
+    ("L32: Drill v m c , b", "vmc,b bvmc cbmv mvbc ,bcv vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn mvbc vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn"),
+    ("L33: Drill x . z / n", "x.z/n nx.z /nx. .znx z/nx x.nz /nzx .n/z zx.n /.x/n x.n. z/n/ x.nz /nzx .n/z zx.n x.nz /nzx .n/z zx.n"),
+    ("L34: Bottom Row Full", "zxcvbnm,./ zxcvbnm,./ /.,mnbvcxz /.,mnbvcxz zxcv bnm, ./zxcv vbm, cxz. bnm/ zxcv bnm, vmc, x.z/"),
+    ("L35: Home + Bottom", "asdf zxcv jkl; bnm, fjdk vmc, sl;a x.z/ ghhj bnm, zxcv bnm, ask lad fall flask zxcv vbm, cxz. bnm/"),
+    ("L36: Home + Top + Bottom", "asdf qwerty zxcv jkl; uiop bnm, the quick brown fox jumps over the lazy dog zxcvbnm,./ qwertyuiop asdfghjkl;"),
+    ("L37: All 3 Rows Mix", "asdfghjkl; qwertyuiop zxcvbnm,./ the quick brown fox jumps over the lazy dog pack box with five dozen liquor jugs"),
+    ("L38: Shift Home Keys", "AS DF JK L; ASDF JKL; FJDK SLA; GH HJ ASK LAD FALL FLASK SALAD DAD SAD FAD ASDF JKL; FJDK SLA;"),
+    ("L39: Shift Top Keys", "QW ER TY UI OP QWERTY UIOP RUEI WOPQ TRUE WIRE QUIET POWER ROPE POUR PURE QWERTY UIOP RUEI WOPQ"),
+    ("L40: Shift + 3 Rows", "The Quick Brown Fox Jumps Over The Lazy Dog. ASDF JKL; QWERTY UIOP ZXCV BNM. Practice Makes A Man Perfect."),
+    ("L41: Shift Bottom Keys", "ZX CV BN M ZXCV BNM VMC, X.Z/ BNM, ZXCVBNM ZXC VBNM VMCB XZN. BNM. ZXCV BNM VMC, X.Z/ BNM,"),
+    ("L42: Shift Symbols 1", ':" <> ? {} | :"<>?{}| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\|'),
+    ("L43: Shift + Home Drill", "FJDK SLA; ASDF JKL; THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. ACCURACY AND SPEED COME WITH DAILY PRACTICE."),
+    ("L44: Shift + Top Drill", "QWERTY UIOP RUEI WOPQ THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. KEEP YOUR FINGERS ON THE HOME ROW KEYS."),
+    ("L45: Shift + Bottom Drill", "ZXCV BNM,./ VMC, X.Z/ THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG. DO NOT LOOK AT THE KEYBOARD WHILE TYPING."),
+    ("L46: Full Shift Mix", 'The Quick Brown Fox Jumps Over The Lazy Dog! "Practice, Patience, and Precision" are keys to fast typing.'),
+    ("L47: Numbers 1 2 3 4", "1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321"),
+    ("L48: Numbers 5 6", "5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556"),
+    ("L49: Numbers 1 to 6", "123456 654321 12 34 56 135 246 14 25 36 123456 654321 12 34 56 135 246 14 25 36 123456 654321"),
+    ("L50: Numbers 7 8 9 0", "7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987"),
+    ("L51: Full Numbers", "1234567890 0987654321 123 456 789 012 10 20 30 40 50 60 70 80 90 100 2026 1989 1991 1234567890"),
+    ("L52: Symbols !@#$%^", "!@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@ #$ %^ !@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@#$%^ ^%$#@!"),
+    ("L53: Symbols &*()_+", "&*()_+ +_)(*& &* () _+ &*( )_+ &* () _+ &*()_+ +_)(*& &* () _+ &*( )_+ &*()_+ +_)(*&"),
+    ("L54: Shift + Numbers", "!@#$%^&*()_+ +_)(*&^%$#@! 1234567890 !@# $%^ &*( )_+ 2026 @ 100% #1 & #2 (Test) [Done] {Ok}"),
+    ("L55: 3 Rows + Numbers", "Order #1024 dated 20-11-2026 has 350 items at Rs. 45 each. Total amount is Rs. 15,750 only."),
+    ("L56: Office + Numbers", "Ref. No. 88/2026: Please verify 12 files, 45 pages, and 90 records before 05:30 PM today."),
+    ("L57: Speed Building 1", "Consistent daily practice builds muscle memory in your fingers. Focus first on accuracy rather than raw speed, and your typing speed will grow naturally over time."),
+    ("L58: Speed Building 2", "Good posture, relaxed shoulders, and light keystrokes prevent fatigue during long typing sessions. Keep your eyes on the screen or source text instead of looking down at the keys."),
+    ("L59: Speed Building 3", "In office and administrative work, accuracy matters as much as speed. A single wrong number or spelling mistake in a report or record can cause unnecessary delay."),
+    ("L60: 3 Rows Intensive", "Every word you type smoothly is a step toward mastery. Keep practicing home row, top row, and bottom row combinations until your hands move effortlessly across the keyboard."),
+    ("L61: 3 Rows Rhythm", "Rhythm and steady pace help maintain high accuracy even when typing unfamiliar words or longer sentences. Stay calm when you make an error and correct it cleanly."),
+    ("L62: 3 Rows Endurance", "Longer passages test both concentration and stamina. Breathe steadily, keep your wrists straight, and maintain a balanced speed from the beginning to the end of the test."),
+    ("L63: Numbers & Punctuation", "10, 20, 30, 40, 50; 100, 250, 500, 1000. Date: 20/11/2026; Time: 14:20; Code: KT-80-MN."),
+    ("L64: High Digits & Codes", "7890, 8901, 9012, 7089, 8097, 9870, 1234567890, 0987654321, Ref-2026/11/20."),
+    ("L65: Record Accuracy", "Record ID #4092 (2026): 1,250 units processed with 99.4% accuracy in 05:00 minutes."),
+    ("L66: Number Row Drills", "11 22 33 44 55 66 77 88 99 00 123 456 789 012 345 678 901 2026 100 500 1000"),
+    ("L67: Slash & Quotes", 'a/b c/d e/f ? / : ; \' " a/b ? c:d ; e\'f " 1/2 3/4 5/6 7/8 9/10 "Hello, World!" \'Test\''),
+    ("L68: Hyphen & Brackets", "well-known, up-to-date, day-to-day, co-worker; item-1, item-2, item-3; [draft], [final], (check)."),
+    ("L69: Colon & Apostrophe", "it's, don't, can't, won't, user's, file's, system's; status: active, pending, completed."),
+    ("L70: Underscore & Codes", "file_name_01, lesson_80, typing_tutor, user_data, error_stats, test_mode_v1."),
+    ("L71: Shift + Number Row", '! @ # $ % ^ & * ( ) _ + ~ | { } : " < > ? 1 2 3 4 5 6 7 8 9 0'),
+    ("L72: Full Keyboard Drill", 'The quick brown fox jumps over the lazy dog 1234567890 !@#$%^&*()_+-=[]{}|;:\'",./<>?'),
+    ("L73: Full Keyboard Speed", "Practice typing complete sentences with numbers, punctuation, and capital letters without pausing to look at your hands. Steady rhythm leads to higher net speed."),
+    ("L74: Full Keyboard Accuracy", "Careful attention to every keystroke improves both speed and reliability. Check spelling, spacing, and punctuation so every paragraph is clean and error-free."),
+    ("L75: Paragraph 1 General", "Learning to type without looking at the keyboard takes patience at first, but once your fingers learn the exact positions of each key, typing becomes effortless. Start slowly, keep your fingers curved over the home row, and build consistency every single day."),
+    ("L76: Paragraph 2 Office", "Proper documentation and timely record maintenance are essential in every administrative office. Every application, register entry, and reference number should be recorded accurately so that files can be retrieved quickly whenever verification or review is required."),
+    ("L77: Paragraph 3 Legal", "During proceedings and hearings, clear and accurate records play a vital role. Statements, dates, case numbers, and annexures must be entered carefully without altering meanings, ensuring complete clarity for future reference and official orders."),
+    ("L78: Paragraph 4 Speed Test", "A skilled typist balances speed with precision. Rushing blindly often leads to frequent mistakes and extra time spent fixing errors, whereas a smooth, controlled rhythm delivers higher net words per minute and cleaner final text."),
+    ("L79: Paragraph 5 Endurance", "Sustained focus over several minutes is key to performing well in timed typing tests. Keep your breathing steady, relax your fingers between words, and read a few words ahead so your hands keep moving smoothly across the rows."),
+    ("L80: Paragraph 6 Final", "Mastering touch typing is a practical lifelong skill that saves time every day in drafting, coding, data entry, and correspondence. Regular practice across letters, numbers, symbols, and full paragraphs prepares you for any speed or accuracy test with confidence."),
+]
+
+KRUTIDEV_80 = [
+    ("L1: Keys f j", "ffjjf jffjj ffjfj jjffj fjjfj ffjjf jffjf fjfjf jffjj ffjfj jjfjf fjjff ffjjf jffjf fjfjf jfjjf ffjjf jfjfj jjffj jffjf"),
+    ("L2: Keys d k", "ddkkd kdkdd kddkd ddkdk kdkkd dkkdk dkdkd dkkdk kddkd kddkk kkddk ddkdk dkkdd kkdkd dkdkk dkkdd kddkd kddkk ddkdk kkddk"),
+    ("L3: Keys s l", "llssl sslls lssll sslls sslsl slsls llssl lssls sllss sllsl llsls slsls lslss sllsl lssls lslls sslsl slsls lslsl sllsl"),
+    ("L4: Keys a ;", "aa;;a a;;aa ;aa;; ;;a;a ;a;a; aa;;a a;;a; a;;aa a;;a; aa;a; ;a;a; a;a;; a;;a; a;;a; a;;;a ;;a;a ;a;a; a;a;a a;;a; a;;a;"),
+    ("L5: Keys f j d k", "ffjd dkfj jdfk kdfd jfjk dksf jfkd dkfs fjjd kffj dkkd jfdk sflj dkjf kdlf jskd flkj djfs kljd fjks dklf"),
+    ("L6: Keys s l a ;", "sl;a a;ls l;as ;sla sals l;sa as;l ;las slal ;asl lsa; asla ;l;a slas ;l;a sa;l l;as a;sl ;asl l;sa a;ls s;al l;as"),
+    ("L7: Drill Home Row 1", "d s h f t y r k l ; d s h f t y r k l ; dkj dkj gkj lkj dgk fdj fdj fdl jkl; asdf fjdk sla;"),
+    ("L8: Keys g h", "gghhg hggdd hhggf ggffh hhjjg gghjh hhfgd ggkls hhaj; gghgh hggfg hhjkd ggsl; hhdfj gghgh ggjkl hhdsa ;lkjh"),
+    ("L9: Drill Home + g h", "dsghf tlyrk ;gh fg hj dkgf slhj afgk ;lhj ghfjdk ghsla; dkj gkj lkj dgk hkj gsj"),
+    ("L10: Drill Home Full", "d s h f t y r k l ; ; l k j h g f d s a dkj gkj lkj dgk fdj fdl hkj gsj flk dsl"),
+    ("L11: Home Row Speed", "dkj gkj lkj dgk fdj fdj fdl hkj gsj d s h f t y r k l ; ; l k j h g f d s a"),
+    ("L12: Keys r u", "rruur urrur uruur rruur urrur rruur rruur urrur urrur rruur urrur urrur urruu uurru urrur urrur rruuu rruur rruur uurru"),
+    ("L13: Keys e i", "eeiie ieeii ieeie eeiei eieie eieie eeiie ieeie eii ee eieil ieeie ieeie ieeii iieei ieeie ieeie eeiii eeiei eeiei iieei"),
+    ("L14: Keys w o", "wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow owwow owwow wwoow oowwo owwow owwow wwooo wwoow owwow oowwo"),
+    ("L15: Keys q p", "qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq pqqpp pqqpp qqppq ppqqp pqqpp pqqpp qqppp qqppq qqppq ppqqp"),
+    ("L16: Keys r u e i", "ru ei ruei iure erui irue ruri eiei ruie ireu ruer eiru urie euri rieu urei riee urii eerr iiuu ruei iure"),
+    ("L17: Keys w o q p", "wo qp woqp pqow owpq qpow wowo qpqp woip qopu wopo qpip owqo pqwo wopq qpow woow qppq woqp pqow owpq qpow"),
+    ("L18: Drill Top Row", "q w e r t y u i o p p o i u y t r e w q ruel wopq qwer tyui opqw pqr uio ewr tyo"),
+    ("L19: Drill Top + Home", "qwer asdf tyui jkl; opqw ;lkj dkj gkj lkj ruel wopq pqr uio d s h f t y r k l ;"),
+    ("L20: Top + Home Mix", "dkj ruel gkj wopq lkj pqr dgk uio fdj tyui hkj ruei d s h f t y r k l ; q w e r t y u i o p"),
+    ("L21: Top Row Complete", "q w e r t y u i o p q w e r t y u i o p p o i u y t r e w q ruel wopq qwer tyui opqw"),
+    ("L22: Home + Top Drill", "asdf qwer jkl; tyui dkj ruel gkj wopq lkj pqr dgk uio q w e r t y u i o p d s h f t y r k l ;"),
+    ("L23: Home + Top Speed", "dkj ruel gkj wopq lkj pqr dgk uio fdj tyui hkj ruei qwer tyui asdf jkl; dkj gkj lkj dgk"),
+    ("L24: Home + Top Accuracy", "ds hf tj yk l; qw er ty ui op qwer asdf tyui jkl; opqw ;lkj dkj ruel gkj wopq lkj pqr"),
+    ("L25: Keys v m", "vvm mv mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv mv mvv vm mvv"),
+    ("L26: Keys c ,", "cc,,c ,cc,, ,cc,, cc,c ,c,c ,c,c cc,,c ,c,c c,,cc cc,,c ,c,c ,c,c cc,,, cc,c cc,c cc,,c ,c,c ,c,c cc,,c ,c,c c,,cc"),
+    ("L27: Keys x .", "xx..x .xx.. .xx.. xx.x .x.x .x.x xx..x .x.x x..xx xx..x .x.x .x.x xx... xx.x xx.x xx..x .x.x .x.x xx..x .x.x x..xx"),
+    ("L28: Keys z /", "zz//z /zz// /zz// zz/z /z/z /z/z zz//z /z/z z//zz zz//z /z/z /z/z zz/// zz/z zz/z zz//z /z/z /z/z zz//z /z/z z//zz"),
+    ("L29: Keys v m c ,", "vm c, vm,c cm,v mvc, cvm, vmc, ,mvc c,vm mv,c cv,m vmcm ,c,c vmmv c,vm mvc, cv,m vmc, ,mvc c,vm mv,c"),
+    ("L30: Keys x . z /", "x. z/ x./z zx/. .xz/ z/x. x.z/ /zx. .z/x zx.z /.x/ x.x. z/z/ x.z/ /zx. .z/x zx/. x.z/ /zx. .z/x zx/."),
+    ("L31: Keys b n", "bbnnb nbbnn nbbnn bbnbn bnbnb bnbnb bbnnb nbbnb bnnbb bbnnb nbbnn nbbnn bbnnn bbnbn bbnbn bbnnb nbbnb bnnbb bbnbn"),
+    ("L32: Drill v m c , b", "vmc,b bvmc cbmv mvbc ,bcv vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn mvbc vmbc bcmv ,vmc bcbm vmbc ,cvm bcvn"),
+    ("L33: Drill x . z / n", "x.z/n nx.z /nx. .znx z/nx x.nz /nzx .n/z zx.n /.x/n x.n. z/n/ x.nz /nzx .n/z zx.n x.nz /nzx .n/z zx.n"),
+    ("L34: Bottom Row Full", "zxcvbnm,./ zxcvbnm,./ /.,mnbvcxz /.,mnbvcxz zxcv bnm, ./zxcv vbm, cxz. bnm/ zxcv bnm, vmc, x.z/"),
+    ("L35: Home + Bottom", "asdf zxcv jkl; bnm, vmc, x.z/ zxcv bnm, dkj gkj lkj dgk zxcvbnm,./ d s h f t y r k l ;"),
+    ("L36: Home + Top + Bottom", "asdf qwer zxcv jkl; tyui bnm, zxcvbnm,./ qwer tyui asdf jkl; dkj ruel gkj wopq lkj pqr"),
+    ("L37: All 3 Rows Mix", "fdrkuh] fdrkuh] vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu dkj gkj lkj dgk fdj fdl"),
+    ("L38: Shift Home Keys", "AS DF JK L; ASDF JKL; D K S L F J G H ASDF JKL; D K S L F J G H"),
+    ("L39: Shift Top Keys", "QW ER TY UI OP QWERTY UIOP R T E W Y U I O P Q QWERTY UIOP R T E W Y U I O P Q"),
+    ("L40: Shift + 3 Rows", "vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu Kku {ks= Jheku fdrkuh] fdrkuh]"),
+    ("L41: Shift Bottom Keys", "ZX CV BN M ZXCV BNM VMC, X.Z/ BNM, ZXCVBNM ZXC VBNM VMCB XZN. BNM."),
+    ("L42: Shift Symbols 1", ':" <> ? {} | :"<>?{}| :";\' ,.<> /?., [{]} \\| :";\' ,.<> /?., [{]} \\|'),
+    ("L43: Shift + Home Drill", "vf/kdkjh dk;kZy; vfHkys[k vkns'k lwpuk izfrosnu dkj gkj lkj dgk fdj fdl hkj gsj"),
+    ("L44: Shift + Top Drill", "vkns'k lwpuk izfrosnu vf/kdkjh dk;kZy; vfHkys[k ruel wopq qwer tyui opqw"),
+    ("L45: Shift + Bottom Drill", "Kku {ks= Jheku zxcv bnm, vmc, x.z/ zxcvbnm,./ vbm, cxz. bnm/"),
+    ("L46: Full Shift Mix", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA"),
+    ("L47: Numbers 1 2 3 4", "1122 3344 1234 4321 1212 3434 1324 4231 1122 3344 1234 4321 1212 3434 1324 4231"),
+    ("L48: Numbers 5 6", "5566 5656 6565 5665 6556 5566 5656 6565 5665 6556 5566 5656 6565 5665 6556"),
+    ("L49: Numbers 1 to 6", "123456 654321 12 34 56 135 246 14 25 36 123456 654321 12 34 56 135 246 14 25 36"),
+    ("L50: Numbers 7 8 9 0", "7788 9900 7890 0987 7878 9090 7980 0897 7788 9900 7890 0987 7878 9090 7980 0897"),
+    ("L51: Full Numbers", "1234567890 0987654321 123 456 789 012 10 20 30 40 50 60 70 80 90 100 2026 1989 1991"),
+    ("L52: Symbols !@#$%^", "!@#$%^ ^%$#@! !@ #$ %^ !@# $%^ !@ #$ %^ !@#$%^ ^%$#@! !@ #$ %^ !@# $%^"),
+    ("L53: Symbols &*()_+", "&*()_+ +_)(*& &* () _+ &*( )_+ &* () _+ &*()_+ +_)(*& &* () _+ &*( )_+"),
+    ("L54: Shift + Numbers", "!@#$%^&*()_+ +_)(*&^%$#@! 1234567890 !@# $%^ &*( )_+ 2026 @ 100% #1 & #2"),
+    ("L55: 3 Rows + Numbers", "vkns'k la[;k 1024 fnukad 20-11-2026 ds rgr 350 vfHkys[kksa dh tkap 45 fnuksa esa iw.kZ djuh gSA"),
+    ("L56: Office + Numbers", "lanHkZ la[;k 88/2026% 12 Qkbyksa] 45 i`\"Bksa vkSj 90 vfHkys[kksa dk lR;kiu vkt 05%30 cts rd djsaA"),
+    ("L57: Speed Building 1", "izfrfnu vH;kl djus ls m¡xfy;ksa dh xfr vkSj lVhdrk nksuksa esa lq/kkj gksrk gSA tYnckth ds ctk; 'kq)rk ij /;ku nsaA"),
+    ("L58: Speed Building 2", "dk;kZy;hu dk;Z esa lgh orZuh vkSj le;c)rk cgqr egRoiw.kZ gksrh gSA fdlh Hkh vkns'k ;k izfrosnu esa =qfV ls cpkuk pkfg,"),
+    ("L59: Speed Building 3", "vfHkys[kksa ds lR;kiu rFkk iathdj.k dk dk;Z fu;ekuqlkj vkSj ikjn'khZ rjhds ls fd;k tkuk pkfg, rkfd vkosndksa dks lqfo/kk feysA"),
+    ("L60: 3 Rows Intensive", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA vfHkys[kksa dh tkap dj fu;ekuqlkj vkns'k ikfjr fd;k tkrk gSA"),
+    ("L61: 3 Rows Rhythm", "yk; vkSj lUrqfyr xfr ls Vkbfiax djus ij yacs vuqPNsn Hkh vklkuh ls vkSj fcuk FkdkoV ds fy[ks tk ldrs gSaA"),
+    ("L62: 3 Rows Endurance", "yEcs le; rd Vkbfiax djrs le; dafY;ksa dks lh/kk j[ksa] m¡xfy;ksa dks gYdk j[ksa vkSj lkszr eSVj ij /;ku cuk, j[ksaA"),
+    ("L63: Numbers & Punctuation", "10] 20] 30] 40] 50! 100] 250] 500] 1000A fnukad% 20/11/2026! le;% 14%20! dksM% KT-80-MN!"),
+    ("L64: High Digits & Codes", "7890] 8901] 9012] 7089] 8097] 9870] 1234567890] 0987654321] lanHkZ-2026/11/20A"),
+    ("L65: Record Accuracy", "vfHkys[k la[;k #4092 (2026)% 1]250 enksa dk fuLrkj.k 99.4% 'kq)rk ds lkFk 05%00 feuV esa fd;k x;kA"),
+    ("L66: Number Row Drills", "11 22 33 44 55 66 77 88 99 00 123 456 789 012 345 678 901 2026 100 500 1000"),
+    ("L67: Slash & Quotes", 'd/k [k/x p/N ? / % ! \' " d/k ? p%N ! [k\'x " 1/2 3/4 5/6 7/8 9/10 "dk;kZy;" \'vkns\'k\''),
+    ("L68: Hyphen & Brackets", "mi&lekgrkZ] nkf[ky&[kkfjt] fnu&izfrfnu! en-1] en-2] en-3! izk:] vafre] tkapA"),
+    ("L69: Colon & Apostrophe", "vf/kdkjh% dk;kZy;% vfHkys[k% vkns'k% izfrosnu% lwpuk% fLFkfr% lfØ;] yafcr] iw.kZA"),
+    ("L70: Underscore & Codes", "Qkby_01] ikB_80] Vkbfiax_V~;wVj] ;wtj_MsVk] =kqfV_LVSV] eksM_v1A"),
+    ("L71: Shift + Number Row", '! @ # $ % ^ & * ( ) _ + ~ | { } % " < > ? 1 2 3 4 5 6 7 8 9 0'),
+    ("L72: Full Keyboard Drill", "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa 2026 esa 1234567890 vfHkys[kksa dk lR;kiu fd;k x;kA"),
+    ("L73: Full Keyboard Speed", "fcuk dhcksMZ ns[ks Vkbfiax djus dk vH;kl djus ls xfr vkSj lVhdrk nksuksa esa rsth ls c<+ksrjh gksrh gSA"),
+    ("L74: Full Keyboard Accuracy", "izR;sd 'kCn vkSj ek=k dks /;kuiwoZd ns[kdj Vkbfiax djsa rkfd vafre eSVj iwjh rjg 'kq) vkSj =qfVjfgr gksA"),
+    ("L75: Paragraph 1 General", "fcuk dhcksMZ ns[ks Vkbfiax lh[kus esa 'kq#vkr esa /kS;Z dh vko';drk gksrh gS] ysfdu tc m¡xfy;ksa dks izR;sd dh dh lgh fLFkfr ;kn gks tkrh gS rks Vkbfiax vklku gks tkrh gSA izfrfnu fu;fer vH;kl djrs jguk pkfg,A"),
+    ("L76: Paragraph 2 Office", "iz'kklfud dk;kZy;ksa esa vfHkys[kksa dk lgh la/kkj.k vkSj le; ij lR;kiu vR;ar vko';d gSA izR;sd vkosnu] iath izfof\"V vkSj lanHkZ la[;k dks 'kq)rk ls ntZ fd;k tkuk pkfg, rkfd vko';drk iM+us ij Qkby rqjUr miyC/k gks ldsA"),
+    ("L77: Paragraph 3 Legal", "U;kf;d vkSj jktLo oknksa dh lquokbZ ds nkSjku Li\"V vkSj lVhd vfHkys[k egRoiw.kZ Hkwfedk fuHkkmrs gSaA c;ku] frfFk;ka] okn la[;k vkSj layXu dkxtkrksa dks lko/kkuh ls ntZ djuk pkfg, rkfd vkns'k ikfjr djus esa dksbZ Hkze u jgsA"),
+    ("L78: Paragraph 4 Speed Test", ",d dq'ky VkbfiLV xfr vkSj 'kq)rk ds chp lUrqyu cuk, j[krk gSA fcuk lksps rs\"k Vkbfiax djus ls vf/kd =qfV;ka gksrh gSa] tcfd fLFkj vkSj fu;af=r y; ls vf/kd 'kq) xfr vkSj lkQ eSVj izkIr gksrk gSA"),
+    ("L79: Paragraph 5 Endurance", "yEcs le; rd ,dkxzrk cuk, j[kuk le;c) Vkbfiax ijh{kk esa vPNs izn'kZu dh dqath gSA 'kCnksa ds chp m¡xfy;ksa dks gYdk j[ksa vkSj vkxs ds 'kCnksa ij utj j[ksa rkfd gkFk lqpk: :i ls pyrs jgsaA"),
+    ("L80: Paragraph 6 Final", "Li'kZ Vkbfiax ,d O;kogkfjd dkS'ky gS tks izfrfnu Mªkf¶Vax] MsVk ,aVªh vkSj i=kpkj esa le; cprk gSA v{kjksa] ek=kvksa] vadksa vkSj iwjs vuqPNsnksa dk fu;fer vH;kl vkidks fdlh Hkh ijh{kk ds fy, rS;kj djrk gSA"),
+]
+
+MANGAL_80 = [
+    ("L1: Keys ि र", "किर रकि ककिर ररकिर किरर रककिर किरक ररकक ककरक ररकक रककिर ककिरक रकिरक ररककिर रककिर रककिर ककरक रककिर ररककिर रककिर"),
+    ("L2: Keys ा क", "काका काकका ककाका काकाक ककाका काकका काकका काकका ककाका काकका काकका काकका काकका काकका काकका काकका काकका काकका काकका काकका"),
+    ("L3: Keys े स", "सेसे सेससे सेसेस सेसेक सेससे सेसेस सेसेस सेससे सेसेस सेससे सेससे सेसेस सेससे सेसेस सेससे सेसेस सेससे सेससे सेसेस सेससे"),
+    ("L4: Keys ं य", "यंयं यंययं यंयंय यंयंयं यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंय यंयंयं यंयंय यंयंय यंयंय"),
+    ("L5: Drill क का कि की", "क का कि की काक किक कीक किका काकि किकि कीकी ककाक किकाक कि की का की कि की काक किक कीक किका काकि किकि कीकी"),
+    ("L6: Drill स से यं य", "स से यं य सस सेसे यंयं यय सयं सेयं यसं यंसे सेयं ससे यंय सस सेसे यंयं यय सयं सेयं यसं यंसे सेयं ससे यंय"),
+    ("L7: Drill क ख ग घ", "क ख ग घ च छ ज झ ट ठ ठ ज च घ ख क ग घ च छ ज झ ट ठ कख गघ चछ जझ टठ कग चज टठ घझ छठ खग जच"),
+    ("L8: Keys ु ू", "कु कू कुकु कुकू कुकुउ कुकूउ कुकुक कुकूउ कुकुक कुकूउ कुकूउ कुकुक कुकुक कुकूउ कुकुक कुकूउ कुकुक कुकूउ कुकूउ कुकुक"),
+    ("L9: Drill Home + ु ू", "क ख ग घ च छ ज झ ट ठ कु कू कख गघ चछ जझ टठ कुकू कग चज टठ घझ छठ कुकू कुकुक कखगघ चछजझ टठकु कू"),
+    ("L10: Drill Home Full", "क ख ग घ च छ ज झ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह कख गघ चछ जझ टठ तथ दध पफ बभ मय रल"),
+    ("L11: Home Row Speed", "कख गघ चछ जझ टठ तथ दध पफ बभ मय रल क ख ग घ च छ ज झ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह"),
+    ("L12: Keys त न", "तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन तत नन तन नत तनत नतन तनन"),
+    ("L13: Keys म प", "मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म मम पप मप पम मपम पमप पम्म"),
+    ("L14: Keys ू व", "वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू वव वू ववू वूव ववूव वूवव ववू"),
+    ("L15: Keys ु च", "चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु चच चु चचु चुच चचुच चुचच चचु"),
+    ("L16: Drill त न म प", "तन मप तमन पनत मनप पतम नतप मतन पमत तपन नमत तनम पमन तन मप तमन पनत मनप पतम नतप मतन पमत तपन नमत"),
+    ("L17: Drill व च ु ू", "वच चव वुच चुव वूच चूप वचव चुवच वुचव चवु वच चव वुच चुव वूच चूप वचव चुवच वुचव चवु वच चव वुच चुव वूच चूप"),
+    ("L18: Drill Top Row", "प व च त न म पवन चमन नमन वतन चरण तपन पवन चमन नमन वतन चरण तपन पवन चमन नमन वतन चरण तपन"),
+    ("L19: Drill Top + Home", "पवन चमन नमन वतन चरण तपन कमल नयन घर चल अब कल फल जल मन धन कर भर पवन चमन नमन वतन चरण तपन"),
+    ("L20: Top + Home Mix", "कमल नयन घर चल अब कल फल जल पवन चमन नमन वतन चरण तपन मन धन कर भर हर पल जन धन वन"),
+    ("L21: Top Row Complete", "प व च त न म र ल व स य ह पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम पवन चमन नमन वतन चरण तपन"),
+    ("L22: Home + Top Drill", "कमल नयन घर चल पवन चमन नमन वतन सरस सरल नगर खबर महल कलम अब कल फल जल मन धन कर भर"),
+    ("L23: Home + Top Speed", "कमल नयन घर चल पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम मन धन कर भर हर पल जन धन वन"),
+    ("L24: Home + Top Accuracy", "कमल नयन घर चल पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम अब कल फल जल मन धन कर भर"),
+    ("L25: Keys अ उ", "अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ अअ उउ अउ उअ अउअ उअउ अउउ"),
+    ("L26: Keys ब ए", "बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए बब एए बए एब बएब एबए बएए"),
+    ("L27: Keys ग ण", "गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण गणाग गग णण गणा णग गणाग णगण"),
+    ("L28: Keys र ध", "रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध रर धध रध धर रधर धरण रधध"),
+    ("L29: Drill अ उ ब ए", "अब एब उब बए अबल एबक उबग बएव अब एब उब बए अबल एबक उबग बएव अब एब उब बए अबल एबक उबग बएव"),
+    ("L30: Drill ग ण र ध", "गर धर गण रध गरम धरम गणन रथ गर धर गण रध गरम धरम गणन रथ गर धर गण रध गरम धरम गणन रथ"),
+    ("L31: Keys इ द", "इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद इइ दद इद दइ इदइ दइद इदद"),
+    ("L32: Drill अ उ ब ए इ", "अब इब उब बइ अबल इबक उबग बइव अब इब उब बइ अबल इबक उबग बइव अब इब उब बइ अबल इबक उबग बइव"),
+    ("L33: Drill ग ण र ध द", "गर दर गण दन गरम दरम गणन दशन गर दर गण दन गरम दरम गणन दशन गर दर गण दन गरम दरम गणन दशन"),
+    ("L34: Bottom Row Full", "अ इ उ ए ण ध ग ब द र अबल इबक उबग बएव गरम धरम गणन दशन अबल इबक उबग बएव गरम धरम गणन दशन"),
+    ("L35: Home + Bottom", "कमल नयन घर चल अबल इबक उबग बएव गरम धरम गणन दशन अब कल फल जल मन धन कर भर"),
+    ("L36: Home + Top + Bottom", "कमल नयन घर चल पवन चमन नमन वतन अबल इबक उबग बएव गरम धरम गणन दशन सरस सरल नगर खबर महल कलम"),
+    ("L37: All 3 Rows Mix", "कमल नयन पवन चमन अबल इबक सरस सरल नगर खबर महल कलम दशन गणन घर चल अब कल फल जल मन धन"),
+    ("L38: Shift स्वर आ ई ऊ ऐ औ", "आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार आ ई ऊ ऐ औ आऊ ईद ऊन ऐन औजार"),
+    ("L39: Shift संयुक्त क्ष त्र ज्ञ श्र", "क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम क्ष त्र ज्ञ श्र क्षमा त्रुटि ज्ञान श्रम"),
+    ("L40: Shift + 3 Rows", "क्षमा त्रुटि ज्ञान श्रम आऊ ईद ऊन ऐन औजार कमल नयन पवन चमन सरस सरल नगर खबर महल कलम"),
+    ("L41: Shift चिह्न ऋ ः ँ ॅ", "ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच ऋषि दुःख हँसी ँच"),
+    ("L42: Shift विराम । , . : ; ?", "। , . : ; ? । , . : ; ? । , . : ; ? । , . : ; ? । , . : ; ?"),
+    ("L43: Shift + Home Drill", "आऊ ईद ऊन ऐन औजार कमल नयन घर चल अब कल फल जल मन धन कर भर हर पल जन धन वन"),
+    ("L44: Shift + Top Drill", "क्षमा त्रुटि ज्ञान श्रम पवन चमन नमन वतन चरण तपन सरस सरल नगर खबर महल कलम"),
+    ("L45: Shift + Bottom Drill", "अबल इबक उबग बएव गरम धरम गणन दशन क्षमा त्रुटि ज्ञान श्रम आऊ ईद ऊन ऐन औजार"),
+    ("L46: Full Shift Mix", "अधिकारी कार्यालय अभिलेख आदेश आवेदन प्रतिवेदन सुनवाई प्रमाण पत्र संशोधन पंजीकरण क्षमा त्रुटि ज्ञान श्रम"),
+    ("L47: अंक १ २ ३ ४", "११ २२ ३३ ४४ १२३४ ४३२१ १२१२ ३४३४ १३२४ ४२३१ ११ २२ ३३ ४४ १२३४ ४३२१ १२१२ ३४३४ १३२४ ४२३१"),
+    ("L48: अंक ५ ६", "५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६ ५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६ ५५ ६६ ५६५६ ६५६५ ५६६५ ६५५६"),
+    ("L49: अंक १ से ६", "१२३४५६ ६५४३२१ १२ ३४ ५६ १३५ २४६ १४ २५ ३६ १२३४५६ ६५४३२१ १२ ३४ ५६ १३५ २४६ १४ २५ ३६"),
+    ("L50: अंक ७ ८ ९ ०", "७७ ८८ ९९ ०० ७८९० ०९८७ ७८७८ ९०९० ७९८० ०८९७ ७७ ८८ ९९ ०० ७८९० ०९८७ ७८७८ ९०९० ७९८० ०८९७"),
+    ("L51: पूरे अंक", "१२३४५६७८९० ०९८७६५४३२१ १२३ ४५६ ७८९ ०१२ १० २० ३० ४० ५० ६० ७० ८० ९० १०० २०२६ १९८९ १९९१"),
+    ("L52: चिह्न !@#$%^", "! @ # $ % ^ ^ $ # @ ! !@ #$ %^ !@# $%^ !@#$%^ ^%$#@! ! @ # $ % ^ ^ $ # @ !"),
+    ("L53: चिह्न &*()_+", "& * ( ) _ + + _ ) ( * & &* () _+ &*( )_+ &*()_+ +_)(*& & * ( ) _ + + _ ) ( * &"),
+    ("L54: Shift + अंक", "!@#$%^&*()_+ +_)(*&^%$#@! १२३४५६७८९० !@# $%^ &*( )_+ २०२६ @ १००% #१ & #२"),
+    ("L55: 3 Rows + अंक", "आदेश संख्या १०२४ दिनांक २०-११-२०२६ के तहत ३५० अभिलेखों की जांच ४५ दिनों में पूर्ण करनी है।"),
+    ("L56: कार्यालय + अंक", "संदर्भ संख्या ८८/२०२६: १२ फाइलों, ४५ पृष्ठों और ९० अभिलेखों का सत्यापन आज ०५:३० बजे तक करें।"),
+    ("L57: Speed Building 1", "प्रतिदिन अभ्यास करने से उंगलियों की गति और सटीकता दोनों में सुधार होता है। जल्दबाजी के बजाय शुद्धता पर ध्यान दें।"),
+    ("L58: Speed Building 2", "कार्यालयीन कार्य में सही वर्तनी और समयबद्धता बहुत महत्वपूर्ण होती है। किसी भी आदेश या प्रतिवेदन में त्रुटि से बचना चाहिए।"),
+    ("L59: Speed Building 3", "अभिलेखों के सत्यापन तथा पंजीकरण का कार्य नियमानुसार और पारदर्शी तरीके से किया जाना चाहिए ताकि आवेदकों को सुविधा मिले।"),
+    ("L60: 3 Rows Intensive", "भूमि सुधार उप-समाहर्ता न्यायालय में प्राप्त आवेदनों का अभिलेखीय सत्यापन समयबद्ध रूप से किया जाता है।"),
+    ("L61: 3 Rows Rhythm", "लय और संतुलित गति से टाइपिंग करने पर लंबे अनुच्छेद भी आसानी से और बिना थकावट के लिखे जा सकते हैं।"),
+    ("L62: 3 Rows Endurance", "लंबे समय तक टाइपिंग करते समय कलाइयों को सीधा रखें, उंगलियों को हल्का रखें और स्रोत मैटर पर ध्यान बनाए रखें।"),
+    ("L63: अंक व विराम चिह्न", "१०, २०, ३०, ४०, ५०; १००, २५०, ५००, १०००। दिनांक: २०/११/२०२६; समय: १४:२०; कोड: KT-80-MN।"),
+    ("L64: उच्च अंक व कोड", "७८९०, ८९०१, ९०१२, ७०८९, ८०९७, ९८७०, १२३४५६७८९०, ०९८७६५४३२१, संदर्भ-२०२६/११/२०।"),
+    ("L65: अभिलेख शुद्धता", "अभिलेख संख्या #४०९२ (२०२६): १,२५० मदों का निस्तारण ९९.४% शुद्धता के साथ ०५:०० मिनट में किया गया।"),
+    ("L66: नंबर रो ड्रिल", "११ २२ ३३ ४४ ५५ ६६ ७७ ८८ ९९ ०० १२३ ४५६ ७८९ ०१२ ३४५ ६७८ ९०१ २०२६ १०० ५०० १०००"),
+    ("L67: स्लैश व उद्धरण", "क/ख ग/घ च/छ ? / : ; ' \" क/ख ? च:छ ; ग'घ \" १/२ ३/४ ५/६ ७/८ ९/१० \"कार्यालय\" 'आदेश'"),
+    ("L68: हाइफन व कोष्ठक", "उप-समाहर्ता, दाखिल-खारिज, दिन-प्रतिदिन; मद-१, मद-२, मद-३; प्रारूप, अंतिम, जांच।"),
+    ("L69: विराम व स्थिति", "अधिकारी: कार्यालय: अभिलेख: आदेश: प्रतिवेदन: सूचना: स्थिति: सक्रिय, लंबित, पूर्ण।"),
+    ("L70: अंडरस्कोर व कोड", "फाइल_०१, पाठ_८०, टाइपिंग_ट्यूटर, यूजर_डेटा, त्रुटि_टेस्ट, मोड_v1।"),
+    ("L71: Shift + नंबर रो", "! @ # $ % ^ & * ( ) _ + ~ | { } : \" < > ? १ २ ३ ४ ५ ६ ७ ८ ९ ०"),
+    ("L72: Full Keyboard Drill", "भूमि सुधार उप-समाहर्ता न्यायालय में २०२६ में १२३४५६७८९० अभिलेखों का सत्यापन किया गया।"),
+    ("L73: Full Keyboard Speed", "बिना कीबोर्ड देखे टाइपिंग करने का अभ्यास करने से गति और सटीकता दोनों में तेजी से बढ़ोतरी होती है।"),
+    ("L74: Full Keyboard Accuracy", "प्रत्येक शब्द और मात्रा को ध्यानपूर्वक देखकर टाइपिंग करें ताकि अंतिम मैटर पूरी तरह शुद्ध और त्रुटिरहित हो।"),
+    ("L75: अनुच्छेद 1 सामान्य", "बिना कीबोर्ड देखे टाइपिंग सीखने में शुरुआत में धैर्य की आवश्यकता होती है, लेकिन जब उंगलियों को प्रत्येक की की सही स्थिति याद हो जाती है तो टाइपिंग आसान हो जाती है। प्रतिदिन नियमित अभ्यास करते रहना चाहिए।"),
+    ("L76: अनुच्छेद 2 कार्यालय", "प्रशासनिक कार्यालयों में अभिलेखों का सही संधारण और समय पर सत्यापन अत्यंत आवश्यक है। प्रत्येक आवेदन, पंजी प्रविष्टि और संदर्भ संख्या को शुद्धता से दर्ज किया जाना चाहिए ताकि आवश्यकता पड़ने पर फाइल तुरंत उपलब्ध हो सके।"),
+    ("L77: अनुच्छेद 3 न्यायालय", "न्यायिक और राजस्व वादों की सुनवाई के दौरान स्पष्ट और सटीक अभिलेख महत्वपूर्ण भूमिका निभाते हैं। बयान, तिथियां, वाद संख्या और संलग्न कागजातों को सावधानी से दर्ज करना चाहिए ताकि आदेश पारित करने में कोई भ्रम न रहे।"),
+    ("L78: अनुच्छेद 4 गति परीक्षा", "एक कुशल टाइपिस्ट गति और शुद्धता के बीच संतुलन बनाए रखता है। बिना सोचे तेज टाइपिंग करने से अधिक त्रुटियां होती हैं, जबकि स्थिर और नियंत्रित लय से अधिक शुद्ध गति और साफ मैटर प्राप्त होता है।"),
+    ("L79: अनुच्छेद 5 धैर्य अभ्यास", "लंबे समय तक एकाग्रता बनाए रखना समयबद्ध टाइपिंग परीक्षा में अच्छे प्रदर्शन की कुंजी है। शब्दों के बीच उंगलियों को हल्का रखें और आगे के शब्दों पर नजर रखें ताकि हाथ सुचारु रूप से चलते रहें।"),
+    ("L80: अनुच्छेद 6 अंतिम परीक्षा", "स्पर्श टाइपिंग एक व्यावहारिक कौशल है जो प्रतिदिन ड्राफ्टिंग, डेटा एंट्री और पत्राचार में समय बचाता है। अक्षरों, मात्राओं, अंकों और पूरे अनुच्छेदों का नियमित अभ्यास आपको किसी भी परीक्षा के लिए तैयार करता है।"),
+]
+
+LESSONS_BY_SCRIPT = {
+    "English": ENGLISH_80,
+    "Kruti Dev 010": KRUTIDEV_80,
+    "Mangal": MANGAL_80,
+}
+
+CATEGORIES = {
+    "Beginner (L1-L30)": (0, 30),
+    "Medium (L31-L60)": (30, 60),
+    "Advance (L61-L80)": (60, 80),
+}
+
+
+def hash_password(password_text):
+    return hashlib.sha256(password_text.encode("utf-8")).hexdigest()
+
+
+def check_internet_connection(timeout=3):
+    for url in ONLINE_CHECK_URLS:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=timeout):
+                return True
+        except Exception:
+            continue
+    return False
+
 
 def load_json_file(path, default_factory):
     if os.path.exists(path):
@@ -237,16 +512,21 @@ def save_json_file(path, data):
         pass
 
 
-def make_script_lessons():
-    return {script: dict(lessons) for script, lessons in DEFAULT_LESSONS.items()}
-
-
 def make_script_stats():
     return {"English": {}, "Kruti Dev 010": {}, "Mangal": {}}
 
 
+def make_script_progress():
+    return {"English": 0, "Kruti Dev 010": 0, "Mangal": 0}
+
+
 def default_users():
-    return {"active_user": "Default User", "users": ["Default User"]}
+    return {
+        "active_user": "Default User",
+        "users": ["Default User"],
+        "passwords": {},
+        "offline_licensed": {},
+    }
 
 
 def format_mm_ss(seconds):
@@ -265,17 +545,20 @@ class OfflineTypingTutor:
         self.users_data = load_json_file(USERS_FILE, default_users)
         if not self.users_data.get("users"):
             self.users_data = default_users()
+        self.users_data.setdefault("passwords", {})
+        self.users_data.setdefault("offline_licensed", {})
+
         if self.users_data.get("active_user") not in self.users_data["users"]:
             self.users_data["active_user"] = self.users_data["users"][0]
 
-        self.all_lessons = load_json_file(LESSONS_FILE, dict)
         self.all_stats = load_json_file(STATS_FILE, dict)
+        self.all_progress = {}
         self.ensure_user_data(self.current_user())
 
         self.start_time = None
         self.timer_running = False
-        self.time_left = 60
-        self.selected_duration = 60
+        self.time_left = 600
+        self.selected_duration = 600
         self.word_font_size = 24
         self.key_width = 9
         self.key_height = 3
@@ -286,35 +569,109 @@ class OfflineTypingTutor:
         self.last_wrong_char = None
         self.strict_errors_count = 0
         self.counted_error_positions = set()
+        self.current_lesson_global_index = 0
+        self.app_locked = False
 
         self.setup_ui()
+        self.bind_hidden_key_shortcut()
         self.refresh_user_dropdown()
-        self.refresh_lesson_dropdown(select_first=True)
-        self.load_selected_lesson()
+        self.apply_access_state(self.current_user())
+        self.on_category_change()
+
+    def bind_hidden_key_shortcut(self):
+        # छिपा हुआ शॉर्टकट: Ctrl + Shift + K दबाने पर की (Key) डालने का प्रॉम्प्ट खुलेगा
+        self.root.bind_all("<Control-Shift-K>", lambda e: self.prompt_hidden_access_key())
+        self.root.bind_all("<Control-Shift-k>", lambda e: self.prompt_hidden_access_key())
 
     def current_user(self):
         return self.users_data["active_user"]
 
-    def ensure_user_data(self, username):
-        if username not in self.all_lessons or not isinstance(self.all_lessons[username], dict):
-            self.all_lessons[username] = make_script_lessons()
-        for script in ["English", "Kruti Dev 010", "Mangal"]:
-            if script not in self.all_lessons[username] or not self.all_lessons[username][script]:
-                self.all_lessons[username][script] = dict(DEFAULT_LESSONS[script])
+    def is_user_key_authorized(self, username):
+        return bool(self.users_data.get("offline_licensed", {}).get(username, False))
 
+    def has_valid_access(self, username):
+        if self.is_user_key_authorized(username):
+            return True
+        if STRICT_KEY_REQUIRED:
+            return False
+        return check_internet_connection()
+
+    def set_controls_enabled(self, enabled):
+        state_val = "readonly" if enabled else "disabled"
+        btn_state = tk.NORMAL if enabled else tk.DISABLED
+        txt_state = tk.NORMAL if enabled else tk.DISABLED
+
+        for w in [self.script_combo, self.category_combo, self.lesson_combo, self.time_combo, self.mode_combo]:
+            w.config(state=state_val)
+        for b in [self.reset_btn, self.weak_btn, self.game_btn, self.add_user_btn]:
+            b.config(state=btn_state)
+        self.input_text.config(state=txt_state)
+
+    def apply_access_state(self, username):
+        allowed = self.has_valid_access(username)
+        self.app_locked = not allowed
+        if allowed:
+            self.set_controls_enabled(True)
+            self.alert_label.config(text="अनुमति सक्रिय — 90%+ सटीकता पर अगला लेसन खुलेगा", fg="#15803d")
+        else:
+            self.set_controls_enabled(False)
+            self.clear_highlights()
+            self.alert_label.config(
+                text="बिना अनुमति/की के ऐप लॉक है — केवल अधिकृत व्यक्ति चला सकता है",
+                fg="#b91c1c",
+            )
+            messagebox.showwarning(
+                "अनुमति आवश्यक (Locked)",
+                f"'{username}' के लिए आपकी अनुमति की (Key) सक्रिय नहीं है।\n"
+                "यह ऐप बिना आपकी अनुमति के नहीं चलाया जा सकता।",
+            )
+
+    def prompt_hidden_access_key(self):
+        u = self.current_user()
+        key_input = simpledialog.askstring(
+            "System Verification",
+            f"Enter access key for '{u}':",
+            show="*",
+            parent=self.root,
+        )
+        if not key_input:
+            return
+        if key_input.strip() in MASTER_ACTIVATION_KEYS:
+            self.users_data.setdefault("offline_licensed", {})[u] = True
+            save_json_file(USERS_FILE, self.users_data)
+            self.apply_access_state(u)
+            messagebox.showinfo("Verified", f"'{u}' के लिए अनुमति सक्रिय हो गई है।", parent=self.root)
+        else:
+            messagebox.showerror("Invalid Key", "की (Key) सही नहीं है।", parent=self.root)
+
+    def ensure_user_data(self, username):
         if username not in self.all_stats or not isinstance(self.all_stats[username], dict):
             self.all_stats[username] = make_script_stats()
         for script in ["English", "Kruti Dev 010", "Mangal"]:
             self.all_stats[username].setdefault(script, {})
 
-        save_json_file(LESSONS_FILE, self.all_lessons)
+        if username not in self.all_progress or not isinstance(self.all_progress[username], dict):
+            self.all_progress[username] = make_script_progress()
+        for script in ["English", "Kruti Dev 010", "Mangal"]:
+            self.all_progress[username].setdefault(script, 0)
+
         save_json_file(STATS_FILE, self.all_stats)
 
-    def get_user_lessons_for_script(self, script=None):
+    def get_unlocked_index(self, script=None):
         s = script or self.script_var.get()
         u = self.current_user()
         self.ensure_user_data(u)
-        return self.all_lessons[u][s]
+        return min(int(self.all_progress[u].get(s, 0)), 79)
+
+    def unlock_next_lesson(self, completed_idx):
+        script = self.script_var.get()
+        u = self.current_user()
+        self.ensure_user_data(u)
+        current_unlocked = int(self.all_progress[u].get(script, 0))
+        if completed_idx >= current_unlocked and completed_idx + 1 < 80:
+            self.all_progress[u][script] = completed_idx + 1
+            return True
+        return False
 
     def get_user_stats_for_script(self, script=None):
         s = script or self.script_var.get()
@@ -356,6 +713,13 @@ class OfflineTypingTutor:
         self.key_size_lbl.config(text=f"Key: {self.key_width}")
 
     def setup_ui(self):
+        menubar = tk.Menu(self.root)
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="About", command=lambda: messagebox.showinfo("About", "Offline Typing Tutor v1.0"))
+        help_menu.add_command(label="Activate / Key", command=self.prompt_hidden_access_key)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        self.root.config(menu=menubar)
+
         header = tk.Frame(self.root, bg="#1e3a5f", pady=7, padx=14)
         header.pack(fill=tk.X)
 
@@ -367,7 +731,7 @@ class OfflineTypingTutor:
             fg="white",
         ).pack(side=tk.LEFT)
 
-        tk.Button(
+        self.game_btn = tk.Button(
             header,
             text="गेम खेलें (Typing Game)",
             command=self.open_game_window,
@@ -376,9 +740,10 @@ class OfflineTypingTutor:
             font=("Segoe UI", 9, "bold"),
             padx=10,
             pady=3,
-        ).pack(side=tk.RIGHT, padx=(6, 0))
+        )
+        self.game_btn.pack(side=tk.RIGHT, padx=(6, 0))
 
-        tk.Button(
+        self.weak_btn = tk.Button(
             header,
             text="कमज़ोर कीज़ प्रैक्टिस",
             command=self.practice_weak_keys,
@@ -387,20 +752,9 @@ class OfflineTypingTutor:
             font=("Segoe UI", 9, "bold"),
             padx=10,
             pady=3,
-        ).pack(side=tk.RIGHT, padx=(6, 0))
+        )
+        self.weak_btn.pack(side=tk.RIGHT)
 
-        tk.Button(
-            header,
-            text="लेसन मैनेज करें",
-            command=self.open_lesson_manager,
-            bg="#059669",
-            fg="white",
-            font=("Segoe UI", 9, "bold"),
-            padx=10,
-            pady=3,
-        ).pack(side=tk.RIGHT)
-
-        # कंट्रोल बार (यूज़र, स्क्रिप्ट, लेसन, समय, मोड, मैन्युअल Word/Keyboard साइज़, रीसेट)
         ctrl = tk.Frame(self.root, bg="#eef2f6", pady=5, padx=12)
         ctrl.pack(fill=tk.X)
 
@@ -410,7 +764,7 @@ class OfflineTypingTutor:
         self.user_combo.pack(side=tk.LEFT, padx=(2, 2))
         self.user_combo.bind("<<ComboboxSelected>>", self.on_user_change)
 
-        tk.Button(
+        self.add_user_btn = tk.Button(
             ctrl,
             text="+ यूज़र",
             command=self.add_new_user,
@@ -419,7 +773,8 @@ class OfflineTypingTutor:
             font=("Segoe UI", 8, "bold"),
             padx=5,
             pady=1,
-        ).pack(side=tk.LEFT, padx=(0, 8))
+        )
+        self.add_user_btn.pack(side=tk.LEFT, padx=(0, 8))
 
         tk.Label(ctrl, text="स्क्रिप्ट:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
         self.script_var = tk.StringVar(value="English")
@@ -433,18 +788,30 @@ class OfflineTypingTutor:
         self.script_combo.pack(side=tk.LEFT, padx=(2, 6))
         self.script_combo.bind("<<ComboboxSelected>>", self.on_script_change)
 
+        tk.Label(ctrl, text="कैटेगरी:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
+        self.category_var = tk.StringVar(value="Beginner (L1-L30)")
+        self.category_combo = ttk.Combobox(
+            ctrl,
+            textvariable=self.category_var,
+            values=list(CATEGORIES.keys()),
+            width=16,
+            state="readonly",
+        )
+        self.category_combo.pack(side=tk.LEFT, padx=(2, 6))
+        self.category_combo.bind("<<ComboboxSelected>>", self.on_category_change)
+
         tk.Label(ctrl, text="लेसन:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
         self.lesson_var = tk.StringVar()
         self.lesson_combo = ttk.Combobox(ctrl, textvariable=self.lesson_var, width=22, state="readonly")
         self.lesson_combo.pack(side=tk.LEFT, padx=(2, 6))
-        self.lesson_combo.bind("<<ComboboxSelected>>", lambda e: self.load_selected_lesson())
+        self.lesson_combo.bind("<<ComboboxSelected>>", self.on_lesson_select)
 
         tk.Label(ctrl, text="समय:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
-        self.time_var = tk.StringVar(value="1 Min")
+        self.time_var = tk.StringVar(value="10 Min")
         self.time_combo = ttk.Combobox(
             ctrl,
             textvariable=self.time_var,
-            values=["1 Min", "2 Min", "5 Min", "10 Min"],
+            values=["10 Min", "15 Min", "20 Min"],
             width=7,
             state="readonly",
         )
@@ -463,21 +830,19 @@ class OfflineTypingTutor:
         self.mode_combo.pack(side=tk.LEFT, padx=(2, 6))
         self.mode_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
 
-        # मैन्युअल Word साइज़ कंट्रोल
-        word_ctrl = tk.Frame(ctrl, bg="#dbeafe", padx=4, pady=1, bd=1, relief=tk.SOLID)
-        word_ctrl.pack(side=tk.LEFT, padx=3)
-        tk.Button(word_ctrl, text="W-", command=lambda: self.adjust_word_size(-2), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
-        self.word_size_lbl = tk.Label(word_ctrl, text=f"Word: {self.word_font_size}", font=("Segoe UI", 8, "bold"), bg="#dbeafe", fg="#1e3a8a", padx=3)
+        word_ctrl = tk.Frame(ctrl, bg="#dbeafe", padx=3, pady=1, bd=1, relief=tk.SOLID)
+        word_ctrl.pack(side=tk.LEFT, padx=2)
+        tk.Button(word_ctrl, text="W-", command=lambda: self.adjust_word_size(-2), font=("Segoe UI", 8, "bold"), padx=3, pady=0).pack(side=tk.LEFT)
+        self.word_size_lbl = tk.Label(word_ctrl, text=f"Word: {self.word_font_size}", font=("Segoe UI", 8, "bold"), bg="#dbeafe", fg="#1e3a8a", padx=2)
         self.word_size_lbl.pack(side=tk.LEFT)
-        tk.Button(word_ctrl, text="W+", command=lambda: self.adjust_word_size(2), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
+        tk.Button(word_ctrl, text="W+", command=lambda: self.adjust_word_size(2), font=("Segoe UI", 8, "bold"), padx=3, pady=0).pack(side=tk.LEFT)
 
-        # मैन्युअल Keyboard साइज़ कंट्रोल
-        key_ctrl = tk.Frame(ctrl, bg="#fef3c7", padx=4, pady=1, bd=1, relief=tk.SOLID)
-        key_ctrl.pack(side=tk.LEFT, padx=3)
-        tk.Button(key_ctrl, text="K-", command=lambda: self.adjust_keyboard_size(-1), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
-        self.key_size_lbl = tk.Label(key_ctrl, text=f"Key: {self.key_width}", font=("Segoe UI", 8, "bold"), bg="#fef3c7", fg="#92400e", padx=3)
+        key_ctrl = tk.Frame(ctrl, bg="#fef3c7", padx=3, pady=1, bd=1, relief=tk.SOLID)
+        key_ctrl.pack(side=tk.LEFT, padx=2)
+        tk.Button(key_ctrl, text="K-", command=lambda: self.adjust_keyboard_size(-1), font=("Segoe UI", 8, "bold"), padx=3, pady=0).pack(side=tk.LEFT)
+        self.key_size_lbl = tk.Label(key_ctrl, text=f"Key: {self.key_width}", font=("Segoe UI", 8, "bold"), bg="#fef3c7", fg="#92400e", padx=2)
         self.key_size_lbl.pack(side=tk.LEFT)
-        tk.Button(key_ctrl, text="K+", command=lambda: self.adjust_keyboard_size(1), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
+        tk.Button(key_ctrl, text="K+", command=lambda: self.adjust_keyboard_size(1), font=("Segoe UI", 8, "bold"), padx=3, pady=0).pack(side=tk.LEFT)
 
         self.disable_backspace_var = tk.BooleanVar(value=False)
         tk.Checkbutton(
@@ -497,7 +862,7 @@ class OfflineTypingTutor:
             font=("Segoe UI", 8),
         ).pack(side=tk.LEFT, padx=2)
 
-        tk.Button(
+        self.reset_btn = tk.Button(
             ctrl,
             text="रीसेट",
             command=self.reset_test,
@@ -506,13 +871,14 @@ class OfflineTypingTutor:
             font=("Segoe UI", 9, "bold"),
             padx=8,
             pady=2,
-        ).pack(side=tk.RIGHT)
+        )
+        self.reset_btn.pack(side=tk.RIGHT)
 
         stats_bar = tk.Frame(self.root, bg="#ea580c", pady=5, padx=10)
         stats_bar.pack(fill=tk.X, padx=14, pady=(0, 5))
 
         self.timer_label = tk.Label(
-            stats_bar, text="01:00 Min.", font=("Segoe UI", 12, "bold"), bg="#ea580c", fg="white"
+            stats_bar, text="10:00 Min.", font=("Segoe UI", 12, "bold"), bg="#ea580c", fg="white"
         )
         self.timer_label.pack(side=tk.LEFT, expand=True)
 
@@ -550,7 +916,7 @@ class OfflineTypingTutor:
 
         self.alert_label = tk.Label(
             guide_bar,
-            text="पहला अक्षर दबाते ही समय शुरू होगा",
+            text="कम से कम 90% सटीकता पर अगला लेसन खुलेगा",
             font=("Segoe UI", 9, "bold"),
             bg="#ffffff",
             fg="#2563eb",
@@ -660,31 +1026,58 @@ class OfflineTypingTutor:
         self.user_var.set(self.current_user())
 
     def add_new_user(self):
+        if self.app_locked:
+            messagebox.showwarning("लॉक है", "पहले अनुमति की (Key) से ऐप अनलॉक करें।")
+            return
         name = simpledialog.askstring("नया यूज़र", "नए यूज़र का नाम लिखें:", parent=self.root)
         if not name:
             return
         clean_name = name.strip()
         if not clean_name:
             return
-        if clean_name not in self.users_data["users"]:
-            self.users_data["users"].append(clean_name)
+        if clean_name in self.users_data["users"]:
+            messagebox.showwarning("नाम मौजूद है", "इस नाम का यूज़र पहले से है। कोई दूसरा नाम चुनें।")
+            return
+
+        pwd = simpledialog.askstring("पासवर्ड सेट करें", f"'{clean_name}' के लिए पासवर्ड लिखें (कम से कम 4 अक्षर):", show="*", parent=self.root)
+        if not pwd or len(pwd.strip()) < 4:
+            messagebox.showwarning("कमज़ोर/खाली पासवर्ड", "कृपया कम से कम 4 अक्षरों का पासवर्ड दें।")
+            return
+
+        self.users_data["users"].append(clean_name)
+        self.users_data["passwords"][clean_name] = hash_password(pwd.strip())
+        self.users_data.setdefault("offline_licensed", {})[clean_name] = True
         self.users_data["active_user"] = clean_name
         self.ensure_user_data(clean_name)
         save_json_file(USERS_FILE, self.users_data)
         self.refresh_user_dropdown()
-        self.refresh_lesson_dropdown(select_first=True)
-        self.load_selected_lesson()
-        messagebox.showinfo("यूज़र तैयार", f"अब '{clean_name}' की प्रोफ़ाइल सक्रिय है।")
+        self.apply_access_state(clean_name)
+        self.on_category_change()
+        messagebox.showinfo("यूज़र तैयार", f"'{clean_name}' की पासवर्ड-सुरक्षित प्रोफ़ाइल बन गई है।")
 
     def on_user_change(self, event=None):
         selected = self.user_var.get()
-        if not selected:
+        if not selected or selected == self.current_user():
             return
+
+        stored_hash = self.users_data.get("passwords", {}).get(selected)
+        if stored_hash:
+            entered = simpledialog.askstring(
+                "पासवर्ड डालें",
+                f"'{selected}' की प्रोफ़ाइल खोलने के लिए पासवर्ड दर्ज करें:",
+                show="*",
+                parent=self.root,
+            )
+            if not entered or hash_password(entered) != stored_hash:
+                messagebox.showerror("गलत पासवर्ड", "पासवर्ड सही नहीं है! प्रोफ़ाइल नहीं बदली गई।")
+                self.user_var.set(self.current_user())
+                return
+
         self.users_data["active_user"] = selected
         self.ensure_user_data(selected)
         save_json_file(USERS_FILE, self.users_data)
-        self.refresh_lesson_dropdown(select_first=True)
-        self.load_selected_lesson()
+        self.apply_access_state(selected)
+        self.on_category_change()
 
     def build_onscreen_keyboard(self, parent):
         kb_box = tk.LabelFrame(
@@ -745,6 +1138,8 @@ class OfflineTypingTutor:
                 canvas.itemconfig(shape_id, fill="#f1f5f9")
 
     def highlight_finger(self, finger):
+        if self.app_locked:
+            return
         if finger in self.hand_shapes:
             canvas, shape_id = self.hand_shapes[finger]
             canvas.itemconfig(shape_id, fill="#ef4444")
@@ -772,142 +1167,77 @@ class OfflineTypingTutor:
             except Exception:
                 pass
 
-    def get_selected_seconds(self):
-        mapping = {"1 Min": 60, "2 Min": 120, "5 Min": 300, "10 Min": 600}
-        return mapping.get(self.time_var.get(), 60)
-
-    def on_key_press(self, event):
-        if event.keysym == "BackSpace" and self.disable_backspace_var.get():
-            self.alert_label.config(text="Backspace बंद है!", fg="#b91c1c")
-            return "break"
-
-        if str(self.input_text.cget("state")) == "disabled":
-            return "break"
-
-        if self.mode_var.get() == "गलत पर रुकें":
-            if event.char and event.isprintable() and event.keysym not in ("Return", "Tab"):
-                target = self.target_text.get("1.0", "end-1c")
-                typed = self.input_text.get("1.0", "end-1c")
-                idx = len(typed)
-                if idx < len(target):
-                    expected_char = target[idx]
-                    if event.char != expected_char:
-                        self.strict_errors_count += 1
-                        self.last_wrong_char = event.char
-                        self.record_error_char(expected_char)
-                        self.beep_error()
-                        self.alert_label.config(
-                            text=f"गलत की '{event.char}'! सही की '{expected_char}' दबाएँ",
-                            fg="#b91c1c",
-                        )
-                        self.calculate_stats()
-                        self.update_finger_guide()
-                        return "break"
-                    else:
-                        self.last_wrong_char = None
-                        self.alert_label.config(text="सही!", fg="#15803d")
-        return None
-
-    def update_target_highlights(self):
-        target = self.target_text.get("1.0", "end-1c")
-        typed = self.input_text.get("1.0", "end-1c")
-
-        self.target_text.config(state=tk.NORMAL)
-        self.target_text.tag_remove("correct", "1.0", tk.END)
-        self.target_text.tag_remove("wrong", "1.0", tk.END)
-        self.target_text.tag_remove("current", "1.0", tk.END)
-
-        limit = min(len(typed), len(target))
-        for i in range(limit):
-            s_idx = f"1.0+{i}c"
-            e_idx = f"1.0+{i+1}c"
-            if typed[i] == target[i]:
-                self.target_text.tag_add("correct", s_idx, e_idx)
-            else:
-                self.target_text.tag_add("wrong", s_idx, e_idx)
-                if i not in self.counted_error_positions:
-                    self.counted_error_positions.add(i)
-                    self.record_error_char(target[i])
-                    self.beep_error()
-
-        if len(typed) < len(target):
-            c_start = f"1.0+{len(typed)}c"
-            c_end = f"1.0+{len(typed)+1}c"
-            self.target_text.tag_add("current", c_start, c_end)
-            self.target_text.see(c_start)
-
-        self.target_text.config(state=tk.DISABLED)
-
-    def update_finger_guide(self):
-        self.clear_highlights()
-        script = self.script_var.get()
-        target = self.target_text.get("1.0", "end-1c")
-        typed = self.input_text.get("1.0", "end-1c")
-        idx = len(typed)
-
-        if self.last_wrong_char:
-            if self.last_wrong_char == " " and self.space_btn:
-                self.space_btn.config(bg="#fca5a5")
-            elif self.last_wrong_char in self.key_buttons:
-                w_lbl, _, _ = self.key_buttons[self.last_wrong_char]
-                w_lbl.config(bg="#fca5a5")
-
-        if idx >= len(target):
-            self.finger_label.config(text="लेसन पूरा हुआ!")
-            return
-
-        next_char = target[idx]
-        if next_char == " ":
-            if self.space_btn:
-                self.space_btn.config(bg="#fde047")
-            self.highlight_finger("Thumb")
-            self.finger_label.config(text=f"अगली की: [SPACE]  |  {FINGER_HINDI_NAMES['Thumb']}")
-            return
-
-        if script == "Kruti Dev 010" and next_char in KRUTIDEV_KEY_MAP:
-            key_sym, finger, desc = KRUTIDEV_KEY_MAP[next_char]
-            if key_sym in self.key_buttons:
-                lbl, _, _ = self.key_buttons[key_sym]
-                lbl.config(bg="#fde047")
-            self.highlight_finger(finger)
-            shift_txt = " + Shift" if (key_sym.isupper() or key_sym in "~!@#$%^&*()_+{}|:\"<>?") else ""
-            self.finger_label.config(
-                text=f"Kruti Dev की: '{key_sym}'{shift_txt} ({desc})  |  {FINGER_HINDI_NAMES.get(finger, finger)}"
-            )
-            return
-
-        if next_char in self.key_buttons:
-            lbl, finger, _ = self.key_buttons[next_char]
-            lbl.config(bg="#fde047")
-            self.highlight_finger(finger)
-            shift_txt = " + Shift" if (next_char.isupper() or next_char in "~!@#$%^&*()_+{}|:\"<>?") else ""
-            self.finger_label.config(
-                text=f"अगली की: '{next_char}'{shift_txt}  |  {FINGER_HINDI_NAMES.get(finger, finger)}"
-            )
+    def sync_time_options_for_category(self):
+        cat = self.category_var.get()
+        if cat.startswith("Advance"):
+            vals = ["5 Min", "10 Min", "15 Min", "20 Min"]
+            default_t = "10 Min"
         else:
-            self.finger_label.config(text=f"अगला अक्षर ({script}): '{next_char}'")
+            vals = ["10 Min", "15 Min", "20 Min"]
+            default_t = "10 Min"
+        self.time_combo["values"] = vals
+        if self.time_var.get() not in vals:
+            self.time_var.set(default_t)
 
-    def refresh_lesson_dropdown(self, select_first=False, select_name=None):
-        lessons = self.get_user_lessons_for_script()
-        names = list(lessons.keys())
-        self.lesson_combo["values"] = names
-        if not names:
-            self.lesson_var.set("")
-            return
-        if select_name and select_name in names:
-            self.lesson_var.set(select_name)
-        elif select_first or self.lesson_var.get() not in names:
-            self.lesson_var.set(names[0])
+    def get_selected_seconds(self):
+        mapping = {"5 Min": 300, "10 Min": 600, "15 Min": 900, "20 Min": 1200}
+        return mapping.get(self.time_var.get(), 600)
 
     def on_script_change(self, event=None):
-        self.refresh_lesson_dropdown(select_first=True)
-        self.load_selected_lesson()
+        self.on_category_change()
 
-    def load_selected_lesson(self):
-        lessons = self.get_user_lessons_for_script()
-        lesson_name = self.lesson_var.get()
-        content = lessons.get(lesson_name, "")
-        self.set_practice_text(content, label_text=f"यूज़र: {self.current_user()} | लेसन: {lesson_name}")
+    def on_category_change(self, event=None):
+        self.sync_time_options_for_category()
+        script = self.script_var.get()
+        cat = self.category_var.get()
+        start_idx, end_idx = CATEGORIES[cat]
+        unlocked = self.get_unlocked_index(script)
+        all_lessons = LESSONS_BY_SCRIPT[script]
+
+        display_names = []
+        for idx in range(start_idx, end_idx):
+            title, _ = all_lessons[idx]
+            status = " [Unlocked]" if idx <= unlocked else " [Locked]"
+            display_names.append(f"{title}{status}")
+
+        self.lesson_combo["values"] = display_names
+
+        target_idx = min(max(unlocked, start_idx), end_idx - 1)
+        self.current_lesson_global_index = target_idx
+        self.lesson_var.set(display_names[target_idx - start_idx])
+        self.load_lesson_by_index(target_idx)
+
+    def on_lesson_select(self, event=None):
+        if self.app_locked:
+            return
+        script = self.script_var.get()
+        cat = self.category_var.get()
+        start_idx, end_idx = CATEGORIES[cat]
+        unlocked = self.get_unlocked_index(script)
+        all_lessons = LESSONS_BY_SCRIPT[script]
+
+        sel_pos = self.lesson_combo.current()
+        if sel_pos < 0:
+            return
+        chosen_idx = start_idx + sel_pos
+
+        if chosen_idx > unlocked:
+            req_title, _ = all_lessons[unlocked]
+            messagebox.showwarning(
+                "लेसन लॉक है",
+                f"अगला लेसन खोलने के लिए पहले '{req_title}' को कम से कम {PASS_ACCURACY_THRESHOLD:.0f}% सटीकता के साथ पूरा करें।",
+            )
+            cur_pos = min(max(self.current_lesson_global_index - start_idx, 0), end_idx - start_idx - 1)
+            self.lesson_var.set(self.lesson_combo["values"][cur_pos])
+            return
+
+        self.current_lesson_global_index = chosen_idx
+        self.load_lesson_by_index(chosen_idx)
+
+    def load_lesson_by_index(self, idx):
+        script = self.script_var.get()
+        title, content = LESSONS_BY_SCRIPT[script][idx]
+        self.set_practice_text(content, label_text=f"{self.current_user()} | {title} (90%+ Acc. से अगला खुलेगा)")
 
     def set_practice_text(self, content, label_text=""):
         script = self.script_var.get()
@@ -922,6 +1252,8 @@ class OfflineTypingTutor:
         self.reset_test(custom_status=label_text or None)
 
     def practice_weak_keys(self):
+        if self.app_locked:
+            return
         script = self.script_var.get()
         user = self.current_user()
         err_map = self.get_user_stats_for_script(script)
@@ -946,145 +1278,9 @@ class OfflineTypingTutor:
         drill_text = " ".join(drill_items * 3)
         self.set_practice_text(drill_text, label_text=f"{user} — कमज़ोर कीज़ ({script}): {' '.join(top_chars)}")
 
-    def export_lessons_to_folder(self, parent_win=None):
-        script = self.script_var.get()
-        user = self.current_user()
-        lessons = self.get_user_lessons_for_script(script)
-        target_dir = os.path.join(APP_DIR, "lessons")
-        os.makedirs(target_dir, exist_ok=True)
-
-        prefix_map = {"English": "english", "Kruti Dev 010": "krutidev", "Mangal": "mangal"}
-        prefix = prefix_map.get(script, "lesson")
-
-        saved_count = 0
-        for idx, (title, body) in enumerate(lessons.items(), start=1):
-            safe_name = "".join(c if c.isalnum() or c in (" ", "_", "-") else "_" for c in title).strip().replace(" ", "_").lower()
-            if not safe_name:
-                safe_name = f"part_{idx}"
-            file_path = os.path.join(target_dir, f"{prefix}_{idx:02d}_{safe_name}.txt")
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(body)
-            saved_count += 1
-
-        messagebox.showinfo(
-            "एक्सपोर्ट पूरा हुआ",
-            f"{script} ({user}) के {saved_count} लेसन यहाँ सेव हो गए:\n{target_dir}",
-            parent=parent_win or self.root,
-        )
-
-    def open_lesson_manager(self):
-        script = self.script_var.get()
-        user = self.current_user()
-        lessons = self.get_user_lessons_for_script(script)
-
-        win = tk.Toplevel(self.root)
-        win.title(f"लेसन मैनेजर — {user} ({script})")
-        win.geometry("780x450")
-        win.configure(bg="#f8fafc")
-
-        top = tk.Frame(win, bg="#f8fafc", padx=12, pady=8)
-        top.pack(fill=tk.X)
-
-        tk.Label(top, text="लेसन का नाम:", font=("Segoe UI", 10, "bold"), bg="#f8fafc").pack(side=tk.LEFT)
-        title_entry = tk.Entry(top, width=32, font=("Segoe UI", 10))
-        title_entry.pack(side=tk.LEFT, padx=(6, 12))
-        title_entry.insert(0, self.lesson_var.get())
-
-        tk.Button(
-            top,
-            text=".txt फ़ाइल चुनें",
-            command=lambda: self.load_txt_into_editor(title_entry, body_box),
-            bg="#d97706",
-            fg="white",
-            font=("Segoe UI", 9, "bold"),
-            padx=8,
-        ).pack(side=tk.RIGHT)
-
-        body_box = tk.Text(
-            win,
-            height=11,
-            font=self.get_script_font(script, 16),
-            wrap=tk.WORD,
-            bg="#ffffff",
-            padx=10,
-            pady=8,
-        )
-        body_box.pack(fill=tk.BOTH, expand=True, padx=12)
-        body_box.insert("1.0", lessons.get(self.lesson_var.get(), ""))
-
-        btns = tk.Frame(win, bg="#f8fafc", padx=12, pady=10)
-        btns.pack(fill=tk.X)
-
-        def on_add():
-            t = title_entry.get().strip()
-            b = body_box.get("1.0", "end-1c").strip()
-            if not t or not b:
-                messagebox.showwarning("अधूरी जानकारी", "लेसन का नाम और मैटर दोनों लिखें।", parent=win)
-                return
-            if t in lessons:
-                messagebox.showinfo("पहले से मौजूद", "इस नाम का लेसन पहले से है। अपडेट करें या नया नाम दें।", parent=win)
-                return
-            lessons[t] = b
-            save_json_file(LESSONS_FILE, self.all_lessons)
-            self.refresh_lesson_dropdown(select_name=t)
-            self.load_selected_lesson()
-            messagebox.showinfo("सेव हुआ", f"'{t}' ({user}) में जुड़ गया।", parent=win)
-
-        def on_update():
-            old_t = self.lesson_var.get()
-            new_t = title_entry.get().strip()
-            b = body_box.get("1.0", "end-1c").strip()
-            if not old_t or not new_t or not b:
-                messagebox.showwarning("अधूरी जानकारी", "नाम और मैटर दोनों भरें।", parent=win)
-                return
-            if old_t != new_t and old_t in lessons:
-                del lessons[old_t]
-            lessons[new_t] = b
-            save_json_file(LESSONS_FILE, self.all_lessons)
-            self.refresh_lesson_dropdown(select_name=new_t)
-            self.load_selected_lesson()
-            messagebox.showinfo("अपडेट हुआ", f"'{new_t}' ({user}) में अपडेट हो गया।", parent=win)
-
-        def on_delete():
-            cur_t = self.lesson_var.get()
-            if len(lessons) <= 1:
-                messagebox.showwarning("हटा नहीं सकते", f"{script} में कम से कम 1 लेसन रहना ज़रूरी है।", parent=win)
-                return
-            if not messagebox.askyesno("पुष्टि करें", f"क्या '{cur_t}' हटाना चाहते हैं?", parent=win):
-                return
-            del lessons[cur_t]
-            save_json_file(LESSONS_FILE, self.all_lessons)
-            self.refresh_lesson_dropdown(select_first=True)
-            self.load_selected_lesson()
-            next_t = self.lesson_var.get()
-            title_entry.delete(0, tk.END)
-            title_entry.insert(0, next_t)
-            body_box.delete("1.0", tk.END)
-            body_box.insert("1.0", lessons.get(next_t, ""))
-
-        tk.Button(btns, text="नया लेसन जोड़ें (Add)", command=on_add, bg="#059669", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
-        tk.Button(btns, text="अपडेट करें (Edit)", command=on_update, bg="#2563eb", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
-        tk.Button(btns, text="हटाएँ (Delete)", command=on_delete, bg="#dc2626", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
-        tk.Button(btns, text="lessons/ फ़ोल्डर में एक्सपोर्ट करें", command=lambda: self.export_lessons_to_folder(win), bg="#0f766e", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
-        tk.Button(btns, text="बंद करें", command=win.destroy, bg="#64748b", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.RIGHT)
-
-    def load_txt_into_editor(self, title_entry, body_box):
-        path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
-        if not path:
-            return
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                txt = f.read().strip()
-        except UnicodeDecodeError:
-            with open(path, "r", encoding="cp1252", errors="ignore") as f:
-                txt = f.read().strip()
-        if txt:
-            title_entry.delete(0, tk.END)
-            title_entry.insert(0, os.path.splitext(os.path.basename(path))[0])
-            body_box.delete("1.0", tk.END)
-            body_box.insert("1.0", txt)
-
     def open_game_window(self):
+        if self.app_locked:
+            return
         script = self.script_var.get()
         user = self.current_user()
         words = GAME_WORDS.get(script, GAME_WORDS["English"])
@@ -1157,6 +1353,121 @@ class OfflineTypingTutor:
         game_win.protocol("WM_DELETE_WINDOW", lambda: (state.update({"active": False}), game_win.destroy()))
         game_win.after(200, tick)
 
+    def on_key_press(self, event):
+        if self.app_locked or str(self.input_text.cget("state")) == "disabled":
+            return "break"
+
+        if event.keysym == "BackSpace" and self.disable_backspace_var.get():
+            self.alert_label.config(text="Backspace बंद है!", fg="#b91c1c")
+            return "break"
+
+        if self.mode_var.get() == "गलत पर रुकें":
+            if event.char and event.isprintable() and event.keysym not in ("Return", "Tab"):
+                target = self.target_text.get("1.0", "end-1c")
+                typed = self.input_text.get("1.0", "end-1c")
+                idx = len(typed)
+                if idx < len(target):
+                    expected_char = target[idx]
+                    if event.char != expected_char:
+                        self.strict_errors_count += 1
+                        self.last_wrong_char = event.char
+                        self.record_error_char(expected_char)
+                        self.beep_error()
+                        self.alert_label.config(
+                            text=f"गलत की '{event.char}'! सही की '{expected_char}' दबाएँ",
+                            fg="#b91c1c",
+                        )
+                        self.calculate_stats()
+                        self.update_finger_guide()
+                        return "break"
+                    else:
+                        self.last_wrong_char = None
+                        self.alert_label.config(text="सही!", fg="#15803d")
+        return None
+
+    def update_target_highlights(self):
+        target = self.target_text.get("1.0", "end-1c")
+        typed = self.input_text.get("1.0", "end-1c")
+
+        self.target_text.config(state=tk.NORMAL)
+        self.target_text.tag_remove("correct", "1.0", tk.END)
+        self.target_text.tag_remove("wrong", "1.0", tk.END)
+        self.target_text.tag_remove("current", "1.0", tk.END)
+
+        limit = min(len(typed), len(target))
+        for i in range(limit):
+            s_idx = f"1.0+{i}c"
+            e_idx = f"1.0+{i+1}c"
+            if typed[i] == target[i]:
+                self.target_text.tag_add("correct", s_idx, e_idx)
+            else:
+                self.target_text.tag_add("wrong", s_idx, e_idx)
+                if i not in self.counted_error_positions:
+                    self.counted_error_positions.add(i)
+                    self.record_error_char(target[i])
+                    self.beep_error()
+
+        if len(typed) < len(target):
+            c_start = f"1.0+{len(typed)}c"
+            c_end = f"1.0+{len(typed)+1}c"
+            self.target_text.tag_add("current", c_start, c_end)
+            self.target_text.see(c_start)
+
+        self.target_text.config(state=tk.DISABLED)
+
+    def update_finger_guide(self):
+        self.clear_highlights()
+        if self.app_locked:
+            self.finger_label.config(text="उंगली गाइड: लॉक (Key आवश्यक)")
+            return
+
+        script = self.script_var.get()
+        target = self.target_text.get("1.0", "end-1c")
+        typed = self.input_text.get("1.0", "end-1c")
+        idx = len(typed)
+
+        if self.last_wrong_char:
+            if self.last_wrong_char == " " and self.space_btn:
+                self.space_btn.config(bg="#fca5a5")
+            elif self.last_wrong_char in self.key_buttons:
+                w_lbl, _, _ = self.key_buttons[self.last_wrong_char]
+                w_lbl.config(bg="#fca5a5")
+
+        if idx >= len(target):
+            self.finger_label.config(text="लेसन पूरा हुआ!")
+            return
+
+        next_char = target[idx]
+        if next_char == " ":
+            if self.space_btn:
+                self.space_btn.config(bg="#fde047")
+            self.highlight_finger("Thumb")
+            self.finger_label.config(text=f"अगली की: [SPACE]  |  {FINGER_HINDI_NAMES['Thumb']}")
+            return
+
+        if script == "Kruti Dev 010" and next_char in KRUTIDEV_KEY_MAP:
+            key_sym, finger, desc = KRUTIDEV_KEY_MAP[next_char]
+            if key_sym in self.key_buttons:
+                lbl, _, _ = self.key_buttons[key_sym]
+                lbl.config(bg="#fde047")
+            self.highlight_finger(finger)
+            shift_txt = " + Shift" if (key_sym.isupper() or key_sym in "~!@#$%^&*()_+{}|:\"<>?") else ""
+            self.finger_label.config(
+                text=f"Kruti Dev की: '{key_sym}'{shift_txt} ({desc})  |  {FINGER_HINDI_NAMES.get(finger, finger)}"
+            )
+            return
+
+        if next_char in self.key_buttons:
+            lbl, finger, _ = self.key_buttons[next_char]
+            lbl.config(bg="#fde047")
+            self.highlight_finger(finger)
+            shift_txt = " + Shift" if (next_char.isupper() or next_char in "~!@#$%^&*()_+{}|:\"<>?") else ""
+            self.finger_label.config(
+                text=f"अगली की: '{next_char}'{shift_txt}  |  {FINGER_HINDI_NAMES.get(finger, finger)}"
+            )
+        else:
+            self.finger_label.config(text=f"अगला अक्षर ({script}): '{next_char}'")
+
     def reset_test(self, custom_status=None):
         self.timer_running = False
         self.start_time = None
@@ -1172,10 +1483,16 @@ class OfflineTypingTutor:
         self.err_label.config(text="00 Errors")
         self.acc_label.config(text="100.0% Acc.")
 
+        if self.app_locked:
+            self.alert_label.config(text="बिना अनुमति/की के ऐप लॉक है", fg="#b91c1c")
+            self.input_text.config(state=tk.DISABLED)
+            self.clear_highlights()
+            return
+
         if custom_status:
             self.alert_label.config(text=custom_status, fg="#7c3aed")
         else:
-            self.alert_label.config(text=f"यूज़र: {self.current_user()} — पहला अक्षर दबाते ही समय शुरू होगा", fg="#2563eb")
+            self.alert_label.config(text="कम से कम 90% सटीकता पर अगला लेसन खुलेगा", fg="#2563eb")
 
         self.input_text.config(state=tk.NORMAL)
         self.input_text.delete("1.0", tk.END)
@@ -1193,7 +1510,7 @@ class OfflineTypingTutor:
             self.finish_test()
 
     def on_key_release(self, event):
-        if str(self.input_text.cget("state")) == "disabled":
+        if self.app_locked or str(self.input_text.cget("state")) == "disabled":
             return
 
         if not self.timer_running and self.time_left > 0:
@@ -1212,23 +1529,31 @@ class OfflineTypingTutor:
         if len(typed) >= len(target) and len(target) > 0:
             self.finish_test()
 
+    def get_current_accuracy(self):
+        target = self.target_text.get("1.0", "end-1c")
+        typed = self.input_text.get("1.0", "end-1c")
+        if self.mode_var.get() == "गलत पर रुकें":
+            correct_chars = len(typed)
+            total_attempts = correct_chars + self.strict_errors_count
+            return (correct_chars / total_attempts) * 100 if total_attempts > 0 else 100.0
+        correct_chars = sum(1 for i, ch in enumerate(typed) if i < len(target) and ch == target[i])
+        return (correct_chars / len(typed)) * 100 if len(typed) > 0 else 100.0
+
     def calculate_stats(self):
         target = self.target_text.get("1.0", "end-1c")
         typed = self.input_text.get("1.0", "end-1c")
 
         elapsed_sec = max(self.selected_duration - self.time_left, 1)
         elapsed_min = elapsed_sec / 60.0
+        acc = self.get_current_accuracy()
 
         if self.mode_var.get() == "गलत पर रुकें":
             correct_chars = len(typed)
             errors = self.strict_errors_count
-            total_attempts = correct_chars + errors
-            acc = (correct_chars / total_attempts) * 100 if total_attempts > 0 else 100.0
             net_wpm = int((correct_chars / 5) / elapsed_min)
         else:
             correct_chars = sum(1 for i, ch in enumerate(typed) if i < len(target) and ch == target[i])
             errors = max(len(typed) - correct_chars, 0)
-            acc = (correct_chars / len(typed)) * 100 if len(typed) > 0 else 100.0
             net_wpm = int((correct_chars / 5) / elapsed_min)
 
         self.signs_label.config(text=f"{len(typed):02d} Signs")
@@ -1241,12 +1566,35 @@ class OfflineTypingTutor:
         self.clear_highlights()
         self.input_text.config(state=tk.DISABLED)
         self.calculate_stats()
-        messagebox.showinfo(
-            "परिणाम (Result)",
-            f"यूज़र: {self.current_user()}\nटेस्ट पूरा हुआ!\n\n"
-            f"{self.wpm_label.cget('text')}  |  {self.acc_label.cget('text')}\n"
-            f"{self.err_label.cget('text')}  |  {self.signs_label.cget('text')}",
-        )
+
+        target = self.target_text.get("1.0", "end-1c")
+        typed = self.input_text.get("1.0", "end-1c")
+        acc = self.get_current_accuracy()
+        completed_full = len(typed) >= len(target) and len(target) > 0
+
+        if completed_full and acc >= PASS_ACCURACY_THRESHOLD:
+            unlocked_new = self.unlock_next_lesson(self.current_lesson_global_index)
+            extra_msg = "\n\nबधाई! अगला लेसन अनलॉक हो गया है।" if unlocked_new else "\n\nलेसन अच्छी तरह पूरा हुआ!"
+            messagebox.showinfo(
+                "लेसन पूर्ण (Passed)",
+                f"यूज़र: {self.current_user()}\n"
+                f"{self.wpm_label.cget('text')}  |  {self.acc_label.cget('text')}\n"
+                f"{self.err_label.cget('text')}  |  {self.signs_label.cget('text')}{extra_msg}",
+            )
+            if unlocked_new:
+                next_idx = self.current_lesson_global_index + 1
+                for cat_name, (s_i, e_i) in CATEGORIES.items():
+                    if s_i <= next_idx < e_i:
+                        self.category_var.set(cat_name)
+                        break
+                self.on_category_change()
+        else:
+            messagebox.showwarning(
+                "फिर से प्रयास करें",
+                f"अगला लेसन खोलने के लिए पूरा मैटर और कम से कम {PASS_ACCURACY_THRESHOLD:.0f}% सटीकता ज़रूरी है।\n\n"
+                f"आपकी सटीकता: {acc:.1f}%\n"
+                f"{self.wpm_label.cget('text')}  |  {self.err_label.cget('text')}",
+            )
 
 
 if __name__ == "__main__":
