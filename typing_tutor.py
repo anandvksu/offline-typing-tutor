@@ -3,7 +3,7 @@ import os
 import sys
 import time
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 
 def get_app_dir():
@@ -102,9 +102,7 @@ FINGER_HINDI_NAMES = {
     "Thumb": "अंगूठा — Spacebar (Thumb)",
 }
 
-# Kruti Dev 010 कस्टम की-टू-फिंगर व आउटपुट विवरण मैपिंग
 KRUTIDEV_KEY_MAP = {
-    # Number & Top-left row
     "`": ("`", "Left Pinky", "छोटी ई की मात्रा (ि) / चिह्न"),
     "~": ("~", "Left Pinky", "रेफ / चिह्न"),
     "1": ("1", "Left Pinky", "१ / चिह्न"),
@@ -131,8 +129,6 @@ KRUTIDEV_KEY_MAP = {
     "_": ("_", "Right Pinky", "चिह्न"),
     "=": ("=", "Right Pinky", "ु (छोटा उ मात्रा)"),
     "+": ("+", "Right Pinky", "ू (बड़ा उ मात्रा)"),
-
-    # QWERTY row (Top row)
     "q": ("q", "Left Pinky", "ु (छोटा उ मात्रा)"),
     "Q": ("Q", "Left Pinky", "फ / संयुक्त रूप"),
     "w": ("w", "Left Ring", "ू (बड़ा उ मात्रा)"),
@@ -159,8 +155,6 @@ KRUTIDEV_KEY_MAP = {
     "}": ("}", "Right Pinky", "ह्र / चिह्न"),
     "\\": ("\\", "Right Pinky", "़ / हलंत चिह्न"),
     "|": ("|", "Right Pinky", "द्व / चिह्न"),
-
-    # ASDF row (Home row)
     "a": ("a", "Left Pinky", "ं (अनुस्वार / बिंदी)"),
     "A": ("A", "Left Pinky", "ँ (चंद्रबिंदु)"),
     "s": ("s", "Left Ring", "े (ए की मात्रा)"),
@@ -183,8 +177,6 @@ KRUTIDEV_KEY_MAP = {
     ":": (":", "Right Pinky", "य् (आधा य)"),
     "'": ("'", "Right Pinky", "ु / चिह्न"),
     '"': ('"', "Right Pinky", "ू / चिह्न"),
-
-    # ZXCV row (Bottom row)
     "z": ("z", "Left Pinky", "र् (रेफ — शब्द के अंत/ऊपर)"),
     "Z": ("Z", "Left Pinky", "र् / चिह्न"),
     "x": ("x", "Left Ring", "ग (गकार)"),
@@ -237,7 +229,7 @@ class OfflineTypingTutor:
     def __init__(self, root):
         self.root = root
         self.root.title("Offline Typing Tutor — English | Kruti Dev 010 | Mangal")
-        self.root.geometry("1060x790")
+        self.root.geometry("1100x820")
         self.root.configure(bg="#f0f4f8")
 
         self.lessons_data = load_lessons_data()
@@ -247,6 +239,8 @@ class OfflineTypingTutor:
         self.selected_duration = 60
         self.key_buttons = {}
         self.space_btn = None
+        self.last_wrong_char = None
+        self.strict_errors_count = 0
 
         self.setup_ui()
         self.refresh_lesson_dropdown(select_first=True)
@@ -266,43 +260,73 @@ class OfflineTypingTutor:
             font=("Segoe UI", 15, "bold"),
             bg="#1a365d",
             fg="white",
-            pady=8,
+            pady=7,
         )
         header.pack(fill=tk.X)
 
-        # 1. स्क्रिप्ट, लेसन, समय और रीसेट बार
-        top_bar = tk.Frame(self.root, bg="#f0f4f8", pady=6)
-        top_bar.pack(fill=tk.X, padx=16)
+        # 1. कंट्रोल बार (स्क्रिप्ट, लेसन, समय, टाइपिंग मोड, विकल्प, रीसेट)
+        top_bar = tk.Frame(self.root, bg="#f0f4f8", pady=5)
+        top_bar.pack(fill=tk.X, padx=14)
 
-        tk.Label(top_bar, text="स्क्रिप्ट:", font=("Segoe UI", 10, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
+        tk.Label(top_bar, text="स्क्रिप्ट:", font=("Segoe UI", 9, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
         self.script_var = tk.StringVar(value="English")
         self.script_combo = ttk.Combobox(
             top_bar,
             textvariable=self.script_var,
             values=["English", "Kruti Dev 010", "Mangal"],
-            width=15,
+            width=13,
             state="readonly",
         )
-        self.script_combo.pack(side=tk.LEFT, padx=(4, 12))
+        self.script_combo.pack(side=tk.LEFT, padx=(3, 8))
         self.script_combo.bind("<<ComboboxSelected>>", self.on_script_change)
 
-        tk.Label(top_bar, text="लेसन:", font=("Segoe UI", 10, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
+        tk.Label(top_bar, text="लेसन:", font=("Segoe UI", 9, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
         self.lesson_var = tk.StringVar()
-        self.lesson_combo = ttk.Combobox(top_bar, textvariable=self.lesson_var, width=28, state="readonly")
-        self.lesson_combo.pack(side=tk.LEFT, padx=(4, 12))
+        self.lesson_combo = ttk.Combobox(top_bar, textvariable=self.lesson_var, width=22, state="readonly")
+        self.lesson_combo.pack(side=tk.LEFT, padx=(3, 8))
         self.lesson_combo.bind("<<ComboboxSelected>>", lambda e: self.load_selected_lesson())
 
-        tk.Label(top_bar, text="समय (s):", font=("Segoe UI", 10, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
+        tk.Label(top_bar, text="समय:", font=("Segoe UI", 9, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
         self.time_var = tk.StringVar(value="60")
         time_combo = ttk.Combobox(
             top_bar,
             textvariable=self.time_var,
             values=["60", "120", "300", "600"],
-            width=7,
+            width=5,
             state="readonly",
         )
-        time_combo.pack(side=tk.LEFT, padx=(4, 10))
+        time_combo.pack(side=tk.LEFT, padx=(3, 8))
         time_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
+
+        tk.Label(top_bar, text="मोड:", font=("Segoe UI", 9, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
+        self.mode_var = tk.StringVar(value="गलत पर रुकें (Strict)")
+        self.mode_combo = ttk.Combobox(
+            top_bar,
+            textvariable=self.mode_var,
+            values=["गलत पर रुकें (Strict)", "आगे बढ़ें (Exam Mode)"],
+            width=20,
+            state="readonly",
+        )
+        self.mode_combo.pack(side=tk.LEFT, padx=(3, 8))
+        self.mode_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
+
+        self.disable_backspace_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            top_bar,
+            text="Backspace बंद",
+            variable=self.disable_backspace_var,
+            bg="#f0f4f8",
+            font=("Segoe UI", 9),
+        ).pack(side=tk.LEFT, padx=4)
+
+        self.sound_var = tk.BooleanVar(value=True)
+        tk.Checkbutton(
+            top_bar,
+            text="बीप साउंड",
+            variable=self.sound_var,
+            bg="#f0f4f8",
+            font=("Segoe UI", 9),
+        ).pack(side=tk.LEFT, padx=4)
 
         tk.Button(
             top_bar,
@@ -311,32 +335,42 @@ class OfflineTypingTutor:
             bg="#2b6cb0",
             fg="white",
             font=("Segoe UI", 9, "bold"),
-            padx=10,
+            padx=9,
             pady=2,
         ).pack(side=tk.RIGHT)
 
-        # 2. लाइव स्कोरबोर्ड (Timer, WPM, Accuracy)
-        stats_frame = tk.Frame(self.root, bg="#e2e8f0", pady=6, bd=1, relief=tk.SOLID)
-        stats_frame.pack(fill=tk.X, padx=16, pady=4)
+        # 2. लाइव स्कोरबोर्ड (Timer, Net WPM, Gross WPM, Accuracy, Errors)
+        stats_frame = tk.Frame(self.root, bg="#e2e8f0", pady=5, bd=1, relief=tk.SOLID)
+        stats_frame.pack(fill=tk.X, padx=14, pady=3)
 
         self.timer_label = tk.Label(
-            stats_frame, text="समय: 60s", font=("Segoe UI", 12, "bold"), bg="#e2e8f0", fg="#c53030"
+            stats_frame, text="समय: 60s", font=("Segoe UI", 11, "bold"), bg="#e2e8f0", fg="#c53030"
         )
         self.timer_label.pack(side=tk.LEFT, expand=True)
 
         self.wpm_label = tk.Label(
-            stats_frame, text="गति (WPM): 0", font=("Segoe UI", 12, "bold"), bg="#e2e8f0", fg="#2f855a"
+            stats_frame, text="Net WPM: 0", font=("Segoe UI", 11, "bold"), bg="#e2e8f0", fg="#2f855a"
         )
         self.wpm_label.pack(side=tk.LEFT, expand=True)
 
+        self.gross_wpm_label = tk.Label(
+            stats_frame, text="Gross WPM: 0", font=("Segoe UI", 11, "bold"), bg="#e2e8f0", fg="#4a5568"
+        )
+        self.gross_wpm_label.pack(side=tk.LEFT, expand=True)
+
         self.acc_label = tk.Label(
-            stats_frame, text="सटीकता (Accuracy): 100%", font=("Segoe UI", 12, "bold"), bg="#e2e8f0", fg="#2b6cb0"
+            stats_frame, text="सटीकता: 100.0%", font=("Segoe UI", 11, "bold"), bg="#e2e8f0", fg="#2b6cb0"
         )
         self.acc_label.pack(side=tk.LEFT, expand=True)
 
-        # 3. फिंगर गाइड बैनर
-        finger_frame = tk.Frame(self.root, bg="#edf2f7", pady=6, padx=10, bd=1, relief=tk.GROOVE)
-        finger_frame.pack(fill=tk.X, padx=16, pady=4)
+        self.err_label = tk.Label(
+            stats_frame, text="गलतियाँ: 0", font=("Segoe UI", 11, "bold"), bg="#e2e8f0", fg="#c53030"
+        )
+        self.err_label.pack(side=tk.LEFT, expand=True)
+
+        # 3. फिंगर गाइड व अलर्ट बैनर
+        finger_frame = tk.Frame(self.root, bg="#edf2f7", pady=5, padx=10, bd=1, relief=tk.GROOVE)
+        finger_frame.pack(fill=tk.X, padx=14, pady=3)
 
         self.finger_label = tk.Label(
             finger_frame,
@@ -347,25 +381,25 @@ class OfflineTypingTutor:
         )
         self.finger_label.pack(side=tk.LEFT)
 
-        self.hint_sublabel = tk.Label(
+        self.status_alert_label = tk.Label(
             finger_frame,
             text="पीले रंग से हाइलाइट की (Key) दबाएँ",
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 9, "bold"),
             bg="#edf2f7",
-            fg="#4a5568",
+            fg="#2b6cb0",
         )
-        self.hint_sublabel.pack(side=tk.RIGHT)
+        self.status_alert_label.pack(side=tk.RIGHT)
 
-        # 4. टारगेट टेक्स्ट और टाइपिंग बॉक्स
+        # 4. टारगेट टेक्स्ट (रंगीन हाइलाइटिंग सहित) और टाइपिंग बॉक्स
         tk.Label(
             self.root,
-            text="देखकर टाइप करने वाला मैटर:",
+            text="देखकर टाइप करने वाला मैटर (हरा = सही | लाल = गलत | पीला = अगला अक्षर):",
             font=("Segoe UI", 9, "bold"),
             bg="#f0f4f8",
-        ).pack(anchor="w", padx=16, pady=(4, 1))
+        ).pack(anchor="w", padx=14, pady=(3, 1))
         self.target_text = tk.Text(
             self.root,
-            height=3,
+            height=4,
             font=("Consolas", 15),
             wrap=tk.WORD,
             bg="#ffffff",
@@ -375,7 +409,10 @@ class OfflineTypingTutor:
             bd=2,
             relief=tk.GROOVE,
         )
-        self.target_text.pack(fill=tk.X, padx=16)
+        self.target_text.pack(fill=tk.X, padx=14)
+        self.target_text.tag_config("correct", foreground="#1e7e34", background="#e6f4ea")
+        self.target_text.tag_config("wrong", foreground="#c53030", background="#fed7d7")
+        self.target_text.tag_config("current", foreground="#000000", background="#fef08a", underline=True)
         self.target_text.config(state=tk.DISABLED)
 
         tk.Label(
@@ -383,7 +420,7 @@ class OfflineTypingTutor:
             text="यहाँ टाइप करें (पहला अक्षर दबाते ही टाइमर शुरू होगा):",
             font=("Segoe UI", 9, "bold"),
             bg="#f0f4f8",
-        ).pack(anchor="w", padx=16, pady=(6, 1))
+        ).pack(anchor="w", padx=14, pady=(5, 1))
         self.input_text = tk.Text(
             self.root,
             height=3,
@@ -396,27 +433,28 @@ class OfflineTypingTutor:
             bd=2,
             relief=tk.GROOVE,
         )
-        self.input_text.pack(fill=tk.X, padx=16)
+        self.input_text.pack(fill=tk.X, padx=14)
+        self.input_text.bind("<KeyPress>", self.on_key_press)
         self.input_text.bind("<KeyRelease>", self.on_key_release)
 
-        # 5. लेसन मैनेजमेंट पैनल (Add / Edit / Delete / Load)
+        # 5. लेसन मैनेजमेंट पैनल (Add / Edit / Delete / Load .txt)
         manage_frame = tk.LabelFrame(
             self.root,
-            text="लेसन जोड़ें / बदलें / हटाएँ (चयनित स्क्रिप्ट के लिए सेव होगा)",
+            text="लेसन जोड़ें / बदलें / हटाएँ / .txt फ़ाइल लोड करें",
             font=("Segoe UI", 9, "bold"),
             bg="#f0f4f8",
             fg="#1a365d",
             padx=8,
-            pady=6,
+            pady=5,
         )
-        manage_frame.pack(fill=tk.X, padx=16, pady=6)
+        manage_frame.pack(fill=tk.X, padx=14, pady=5)
 
         row1 = tk.Frame(manage_frame, bg="#f0f4f8")
         row1.pack(fill=tk.X, pady=(0, 4))
 
         tk.Label(row1, text="लेसन का नाम:", font=("Segoe UI", 9, "bold"), bg="#f0f4f8").pack(side=tk.LEFT)
-        self.lesson_title_entry = tk.Entry(row1, width=28, font=("Segoe UI", 9))
-        self.lesson_title_entry.pack(side=tk.LEFT, padx=(4, 8))
+        self.lesson_title_entry = tk.Entry(row1, width=24, font=("Segoe UI", 9))
+        self.lesson_title_entry.pack(side=tk.LEFT, padx=(4, 6))
 
         tk.Button(
             row1,
@@ -425,37 +463,47 @@ class OfflineTypingTutor:
             bg="#2f855a",
             fg="white",
             font=("Segoe UI", 8, "bold"),
-            padx=8,
+            padx=7,
         ).pack(side=tk.LEFT, padx=2)
 
         tk.Button(
             row1,
-            text="मौजूदा लेसन अपडेट करें (Edit/Save)",
+            text="अपडेट करें (Edit/Save)",
             command=self.update_current_lesson,
             bg="#2b6cb0",
             fg="white",
             font=("Segoe UI", 8, "bold"),
-            padx=8,
+            padx=7,
         ).pack(side=tk.LEFT, padx=2)
 
         tk.Button(
             row1,
-            text="लेसन हटाएँ (Delete)",
+            text="हटाएँ (Delete)",
             command=self.delete_current_lesson,
             bg="#c53030",
             fg="white",
             font=("Segoe UI", 8, "bold"),
-            padx=8,
+            padx=7,
         ).pack(side=tk.LEFT, padx=2)
 
         tk.Button(
             row1,
-            text="बॉक्स का मैटर प्रैक्टिस में डालें",
+            text=".txt फ़ाइल खोलें",
+            command=self.import_txt_file,
+            bg="#d69e2e",
+            fg="black",
+            font=("Segoe UI", 8, "bold"),
+            padx=7,
+        ).pack(side=tk.LEFT, padx=2)
+
+        tk.Button(
+            row1,
+            text="प्रैक्टिस में डालें",
             command=self.load_editor_text_to_practice,
             bg="#6b46c1",
             fg="white",
             font=("Segoe UI", 8, "bold"),
-            padx=8,
+            padx=7,
         ).pack(side=tk.RIGHT)
 
         self.lesson_editor_text = tk.Text(
@@ -475,14 +523,14 @@ class OfflineTypingTutor:
         # 6. ऑन-स्क्रीन कीबोर्ड + फिंगर गाइड
         kb_frame = tk.LabelFrame(
             self.root,
-            text="ऑन-स्क्रीन कीबोर्ड व उंगली गाइड (Finger Guide)",
+            text="ऑन-स्क्रीन कीबोर्ड व उंगली गाइड (पीला = अगली की | लाल = गलत की)",
             font=("Segoe UI", 9, "bold"),
             bg="#f0f4f8",
             fg="#1a365d",
             padx=6,
             pady=4,
         )
-        kb_frame.pack(fill=tk.X, padx=16, pady=(2, 8))
+        kb_frame.pack(fill=tk.X, padx=14, pady=(2, 6))
         self.build_onscreen_keyboard(kb_frame)
 
     def build_onscreen_keyboard(self, parent):
@@ -526,12 +574,86 @@ class OfflineTypingTutor:
         if self.space_btn:
             self.space_btn.config(bg="#ffffff", fg="#1a202c")
 
+    def beep_error(self):
+        if self.sound_var.get():
+            try:
+                self.root.bell()
+            except Exception:
+                pass
+
+    def on_key_press(self, event):
+        if event.keysym == "BackSpace" and self.disable_backspace_var.get():
+            self.status_alert_label.config(text="Backspace बंद है!", fg="#c53030")
+            return "break"
+
+        if str(self.input_text.cget("state")) == "disabled":
+            return "break"
+
+        # Strict Mode (गलत पर रुकें): गलत अक्षर टाइप होने पर आगे न बढ़ें
+        if self.mode_var.get().startswith("गलत पर रुकें"):
+            if event.char and event.isprintable() and event.keysym not in ("Return", "Tab"):
+                target = self.target_text.get("1.0", "end-1c")
+                typed = self.input_text.get("1.0", "end-1c")
+                idx = len(typed)
+                if idx < len(target):
+                    expected_char = target[idx]
+                    if event.char != expected_char:
+                        self.strict_errors_count += 1
+                        self.last_wrong_char = event.char
+                        self.beep_error()
+                        self.status_alert_label.config(
+                            text=f"गलत की '{event.char}'! सही की '{expected_char}' दबाएँ",
+                            fg="#c53030",
+                        )
+                        self.calculate_stats()
+                        self.update_finger_guide()
+                        return "break"
+                    else:
+                        self.last_wrong_char = None
+                        self.status_alert_label.config(text="सही! आगे बढ़ें", fg="#2f855a")
+
+        return None
+
+    def update_target_highlights(self):
+        target = self.target_text.get("1.0", "end-1c")
+        typed = self.input_text.get("1.0", "end-1c")
+
+        self.target_text.config(state=tk.NORMAL)
+        self.target_text.tag_remove("correct", "1.0", tk.END)
+        self.target_text.tag_remove("wrong", "1.0", tk.END)
+        self.target_text.tag_remove("current", "1.0", tk.END)
+
+        limit = min(len(typed), len(target))
+        for i in range(limit):
+            start_idx = f"1.0+{i}c"
+            end_idx = f"1.0+{i+1}c"
+            if typed[i] == target[i]:
+                self.target_text.tag_add("correct", start_idx, end_idx)
+            else:
+                self.target_text.tag_add("wrong", start_idx, end_idx)
+
+        if len(typed) < len(target):
+            cur_start = f"1.0+{len(typed)}c"
+            cur_end = f"1.0+{len(typed)+1}c"
+            self.target_text.tag_add("current", cur_start, cur_end)
+            self.target_text.see(cur_start)
+
+        self.target_text.config(state=tk.DISABLED)
+
     def update_finger_guide(self):
         self.clear_key_highlights()
         script = self.script_var.get()
         target = self.target_text.get("1.0", "end-1c")
         typed = self.input_text.get("1.0", "end-1c")
         idx = len(typed)
+
+        # यदि Strict Mode में गलत की दबाई गई है तो उसे लाल दिखाएँ
+        if self.last_wrong_char:
+            if self.last_wrong_char == " " and self.space_btn:
+                self.space_btn.config(bg="#fc8181", fg="#000000")
+            elif self.last_wrong_char in self.key_buttons:
+                w_lbl, _ = self.key_buttons[self.last_wrong_char]
+                w_lbl.config(bg="#fc8181", fg="#000000")
 
         if idx >= len(target):
             self.finger_label.config(text="टेस्ट समाप्त! (Lesson Complete)")
@@ -612,22 +734,45 @@ class OfflineTypingTutor:
 
         self.reset_test()
 
+    def import_txt_file(self):
+        file_path = filedialog.askopenfilename(
+            title="लेसन .txt फ़ाइल चुनें",
+            filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
+        )
+        if not file_path:
+            return
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                text = f.read().strip()
+        except UnicodeDecodeError:
+            with open(file_path, "r", encoding="cp1252", errors="ignore") as f:
+                text = f.read().strip()
+
+        if not text:
+            messagebox.showwarning("खाली फ़ाइल", "चुनी गई फ़ाइल में कोई टेक्स्ट नहीं मिला।")
+            return
+
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        self.lesson_title_entry.delete(0, tk.END)
+        self.lesson_title_entry.insert(0, base_name)
+        self.lesson_editor_text.delete("1.0", tk.END)
+        self.lesson_editor_text.insert("1.0", text)
+        self.load_editor_text_to_practice()
+        messagebox.showinfo("लोड हो गया", f"'{base_name}' प्रैक्टिस में लोड हो गया। इसे सेव करने के लिए 'नया लेसन जोड़ें (Add)' दबाएँ।")
+
     def add_lesson(self):
         script = self.script_var.get()
         title = self.lesson_title_entry.get().strip()
         body = self.lesson_editor_text.get("1.0", "end-1c").strip()
 
-        if not title:
-            messagebox.showwarning("नाम लिखें", "कृपया नए लेसन का नाम लिखें।")
-            return
-        if not body:
-            messagebox.showwarning("मैटर लिखें", "कृपया लेसन का टाइपिंग मैटर लिखें या पेस्ट करें।")
+        if not title or not body:
+            messagebox.showwarning("अधूरी जानकारी", "लेसन का नाम और टाइपिंग मैटर दोनों भरें।")
             return
 
         if title in self.lessons_data[script]:
             messagebox.showinfo(
                 "नाम पहले से मौजूद है",
-                "इस नाम का लेसन पहले से है। इसे बदलने के लिए 'मौजूदा लेसन अपडेट करें' दबाएँ या नया नाम दें।",
+                "इस नाम का लेसन पहले से है। इसे बदलने के लिए 'अपडेट करें (Edit/Save)' दबाएँ या नया नाम दें।",
             )
             return
 
@@ -643,14 +788,8 @@ class OfflineTypingTutor:
         new_name = self.lesson_title_entry.get().strip()
         body = self.lesson_editor_text.get("1.0", "end-1c").strip()
 
-        if not old_name:
-            messagebox.showwarning("लेसन चुनें", "अपडेट करने के लिए पहले कोई लेसन चुनें।")
-            return
-        if not new_name:
-            messagebox.showwarning("नाम लिखें", "लेसन का नाम खाली नहीं हो सकता।")
-            return
-        if not body:
-            messagebox.showwarning("मैटर लिखें", "लेसन का मैटर खाली नहीं हो सकता।")
+        if not old_name or not new_name or not body:
+            messagebox.showwarning("अधूरी जानकारी", "लेसन चुनें और नाम व मैटर दोनों भरें।")
             return
 
         if old_name != new_name and old_name in self.lessons_data[script]:
@@ -672,8 +811,7 @@ class OfflineTypingTutor:
             messagebox.showwarning("हटा नहीं सकते", f"{script} में कम से कम 1 लेसन रहना ज़रूरी है।")
             return
 
-        confirm = messagebox.askyesno("पुष्टि करें", f"क्या आप '{lesson_name}' लेसन को हटाना चाहते हैं?")
-        if not confirm:
+        if not messagebox.askyesno("पुष्टि करें", f"क्या आप '{lesson_name}' लेसन को हटाना चाहते हैं?"):
             return
 
         del self.lessons_data[script][lesson_name]
@@ -697,16 +835,22 @@ class OfflineTypingTutor:
     def reset_test(self):
         self.timer_running = False
         self.start_time = None
+        self.last_wrong_char = None
+        self.strict_errors_count = 0
         try:
             self.selected_duration = int(self.time_var.get())
         except ValueError:
             self.selected_duration = 60
         self.time_left = self.selected_duration
         self.timer_label.config(text=f"समय: {self.time_left}s")
-        self.wpm_label.config(text="गति (WPM): 0")
-        self.acc_label.config(text="सटीकता (Accuracy): 100%")
+        self.wpm_label.config(text="Net WPM: 0")
+        self.gross_wpm_label.config(text="Gross WPM: 0")
+        self.acc_label.config(text="सटीकता: 100.0%")
+        self.err_label.config(text="गलतियाँ: 0")
+        self.status_alert_label.config(text="पीले रंग से हाइलाइट की (Key) दबाएँ", fg="#2b6cb0")
         self.input_text.config(state=tk.NORMAL)
         self.input_text.delete("1.0", tk.END)
+        self.update_target_highlights()
         self.update_finger_guide()
         self.input_text.focus()
 
@@ -720,6 +864,9 @@ class OfflineTypingTutor:
             self.finish_test()
 
     def on_key_release(self, event):
+        if str(self.input_text.cget("state")) == "disabled":
+            return
+
         if not self.timer_running and self.time_left > 0:
             typed = self.input_text.get("1.0", "end-1c")
             if len(typed) > 0:
@@ -727,28 +874,40 @@ class OfflineTypingTutor:
                 self.start_time = time.time()
                 self.update_timer()
 
+        self.update_target_highlights()
         self.calculate_stats()
         self.update_finger_guide()
 
         target = self.target_text.get("1.0", "end-1c")
         typed = self.input_text.get("1.0", "end-1c")
-        if len(typed) >= len(target):
+        if len(typed) >= len(target) and len(target) > 0:
             self.finish_test()
 
     def calculate_stats(self):
         target = self.target_text.get("1.0", "end-1c")
         typed = self.input_text.get("1.0", "end-1c")
 
-        if not typed:
-            return
+        elapsed_seconds = max(self.selected_duration - self.time_left, 1)
+        elapsed_minutes = elapsed_seconds / 60.0
 
-        correct_chars = sum(1 for i, ch in enumerate(typed) if i < len(target) and ch == target[i])
-        accuracy = (correct_chars / len(typed)) * 100
-        elapsed_minutes = max((self.selected_duration - self.time_left) / 60.0, 1 / 60.0)
-        wpm = int((correct_chars / 5) / elapsed_minutes)
+        if self.mode_var.get().startswith("गलत पर रुकें"):
+            correct_chars = len(typed)
+            errors = self.strict_errors_count
+            total_attempts = correct_chars + errors
+            accuracy = (correct_chars / total_attempts) * 100 if total_attempts > 0 else 100.0
+            gross_wpm = int((total_attempts / 5) / elapsed_minutes)
+            net_wpm = int((correct_chars / 5) / elapsed_minutes)
+        else:
+            correct_chars = sum(1 for i, ch in enumerate(typed) if i < len(target) and ch == target[i])
+            errors = max(len(typed) - correct_chars, 0)
+            accuracy = (correct_chars / len(typed)) * 100 if len(typed) > 0 else 100.0
+            gross_wpm = int((len(typed) / 5) / elapsed_minutes)
+            net_wpm = int((correct_chars / 5) / elapsed_minutes)
 
-        self.wpm_label.config(text=f"गति (WPM): {wpm}")
-        self.acc_label.config(text=f"सटीकता (Accuracy): {accuracy:.1f}%")
+        self.wpm_label.config(text=f"Net WPM: {net_wpm}")
+        self.gross_wpm_label.config(text=f"Gross WPM: {gross_wpm}")
+        self.acc_label.config(text=f"सटीकता: {accuracy:.1f}%")
+        self.err_label.config(text=f"गलतियाँ: {errors}")
 
     def finish_test(self):
         self.timer_running = False
@@ -756,8 +915,11 @@ class OfflineTypingTutor:
         self.input_text.config(state=tk.DISABLED)
         self.calculate_stats()
         messagebox.showinfo(
-            "परिणाम (Result)",
-            f"टेस्ट पूरा हुआ!\n\n{self.wpm_label.cget('text')}\n{self.acc_label.cget('text')}",
+            "परीक्षा परिणाम (Result)",
+            f"टेस्ट पूरा हुआ!\n\n"
+            f"मोड: {self.mode_var.get()}\n"
+            f"{self.wpm_label.cget('text')}  |  {self.gross_wpm_label.cget('text')}\n"
+            f"{self.acc_label.cget('text')}  |  {self.err_label.cget('text')}",
         )
 
 
