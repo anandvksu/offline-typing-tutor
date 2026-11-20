@@ -23,8 +23,8 @@ PASS_ACCURACY_THRESHOLD = 90.0
 
 # अपनी गोपनीय अनुमति की (Access Keys) यहाँ रखें (इंस्टॉल के समय नहीं मांगी जाएंगी)
 MASTER_ACTIVATION_KEYS = {
-    "ANAND-OFFLINE-2026",
-    "VKSU-TYPING-KEY-99",
+    "ANAND-AYUSH-ARYA-AJINKYA-1989",
+   
 }
 
 # True रखने पर बिना आपकी Key के ऐप (ऑनलाइन हो या ऑफलाइन) नहीं चलेगा
