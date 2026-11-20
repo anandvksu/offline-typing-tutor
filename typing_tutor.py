@@ -102,6 +102,111 @@ FINGER_HINDI_NAMES = {
     "Thumb": "अंगूठा — Spacebar (Thumb)",
 }
 
+# Kruti Dev 010 कस्टम की-टू-फिंगर व आउटपुट विवरण मैपिंग
+KRUTIDEV_KEY_MAP = {
+    # Number & Top-left row
+    "`": ("`", "Left Pinky", "छोटी ई की मात्रा (ि) / चिह्न"),
+    "~": ("~", "Left Pinky", "रेफ / चिह्न"),
+    "1": ("1", "Left Pinky", "१ / चिह्न"),
+    "!": ("!", "Left Pinky", "। / चिह्न"),
+    "2": ("2", "Left Ring", "२ / चिह्न"),
+    "@": ("@", "Left Ring", "/ (स्लैश)"),
+    "3": ("3", "Left Middle", "३ / चिह्न"),
+    "#": ("#", "Left Middle", "क्ष / चिह्न"),
+    "4": ("4", "Left Index", "४ / चिह्न"),
+    "$": ("$", "Left Index", "द्ध / चिह्न"),
+    "5": ("5", "Left Index", "५ / चिह्न"),
+    "%": ("%", "Left Index", "त्र / चिह्न"),
+    "6": ("6", "Right Index", "६ / चिह्न"),
+    "^": ("^", "Right Index", "ज्ञ / चिह्न"),
+    "7": ("7", "Right Index", "७ / चिह्न"),
+    "&": ("&", "Right Index", "श्र / चिह्न"),
+    "8": ("8", "Right Middle", "८ / चिह्न"),
+    "*": ("*", "Right Middle", "रु / चिह्न"),
+    "9": ("9", "Right Ring", "९ / चिह्न"),
+    "(": ("(", "Right Ring", "ऋ / चिह्न"),
+    "0": ("0", "Right Pinky", "० / चिह्न"),
+    ")": (")", "Right Pinky", "— / चिह्न"),
+    "-": ("-", "Right Pinky", "चिह्न"),
+    "_": ("_", "Right Pinky", "चिह्न"),
+    "=": ("=", "Right Pinky", "ु (छोटा उ मात्रा)"),
+    "+": ("+", "Right Pinky", "ू (बड़ा उ मात्रा)"),
+
+    # QWERTY row (Top row)
+    "q": ("q", "Left Pinky", "ु (छोटा उ मात्रा)"),
+    "Q": ("Q", "Left Pinky", "फ / संयुक्त रूप"),
+    "w": ("w", "Left Ring", "ू (बड़ा उ मात्रा)"),
+    "W": ("W", "Left Ring", "ॅ / संयुक्त रूप"),
+    "e": ("e", "Left Middle", "म (मकार)"),
+    "E": ("E", "Left Middle", "म् (आधा म)"),
+    "r": ("r", "Left Index", "त (तकार)"),
+    "R": ("R", "Left Index", "त् (आधा त)"),
+    "t": ("t", "Left Index", "ज (जकार)"),
+    "T": ("T", "Left Index", "ज् (आधा ज)"),
+    "y": ("y", "Right Index", "ल (लकार)"),
+    "Y": ("Y", "Right Index", "ल् (आधा ल)"),
+    "u": ("u", "Right Index", "न (नकार)"),
+    "U": ("U", "Right Index", "न् (आधा न)"),
+    "i": ("i", "Right Middle", "प (पकार)"),
+    "I": ("I", "Right Middle", "प् (आधा प)"),
+    "o": ("o", "Right Ring", "व (वकार)"),
+    "O": ("O", "Right Ring", "व् (आधा व)"),
+    "p": ("p", "Right Pinky", "च (चकार)"),
+    "P": ("P", "Right Pinky", "च् (आधा च)"),
+    "[": ("[", "Right Pinky", "ख (खकार)"),
+    "{": ("{", "Right Pinky", "ख् (आधा ख)"),
+    "]": ("]", "Right Pinky", "़ (नुक्ता / चिह्न)"),
+    "}": ("}", "Right Pinky", "ह्र / चिह्न"),
+    "\\": ("\\", "Right Pinky", "़ / हलंत चिह्न"),
+    "|": ("|", "Right Pinky", "द्व / चिह्न"),
+
+    # ASDF row (Home row)
+    "a": ("a", "Left Pinky", "ं (अनुस्वार / बिंदी)"),
+    "A": ("A", "Left Pinky", "ँ (चंद्रबिंदु)"),
+    "s": ("s", "Left Ring", "े (ए की मात्रा)"),
+    "S": ("S", "Left Ring", "ै (ऐ की मात्रा)"),
+    "d": ("d", "Left Middle", "क (ककार)"),
+    "D": ("D", "Left Middle", "क् (आधा क)"),
+    "f": ("f", "Left Index", "ि (छोटी इ की मात्रा — शब्द से पहले)"),
+    "F": ("F", "Left Index", "फ् / चिह्न"),
+    "g": ("g", "Left Index", "ह (हकार)"),
+    "G": ("G", "Left Index", "ह् (आधा ह)"),
+    "h": ("h", "Right Index", "ी (बड़ी ई की मात्रा)"),
+    "H": ("H", "Right Index", "ीं / चिह्न"),
+    "j": ("j", "Right Index", "र (रकार)"),
+    "J": ("J", "Right Index", "्र / रेफ"),
+    "k": ("k", "Right Middle", "ा (आ की मात्रा)"),
+    "K": ("K", "Right Middle", "ा / चिह्न"),
+    "l": ("l", "Right Ring", "स (सकार)"),
+    "L": ("L", "Right Ring", "स् (आधा स)"),
+    ";": (";", "Right Pinky", "य (यकार)"),
+    ":": (":", "Right Pinky", "य् (आधा य)"),
+    "'": ("'", "Right Pinky", "ु / चिह्न"),
+    '"': ('"', "Right Pinky", "ू / चिह्न"),
+
+    # ZXCV row (Bottom row)
+    "z": ("z", "Left Pinky", "र् (रेफ — शब्द के अंत/ऊपर)"),
+    "Z": ("Z", "Left Pinky", "र् / चिह्न"),
+    "x": ("x", "Left Ring", "ग (गकार)"),
+    "X": ("X", "Left Ring", "ग् (आधा ग)"),
+    "c": ("c", "Left Middle", "ब (बकार)"),
+    "C": ("C", "Left Middle", "ब् (आधा ब)"),
+    "v": ("v", "Left Index", "अ / अकार"),
+    "V": ("V", "Left Index", "अ / चिह्न"),
+    "b": ("b", "Left Index", "इ (इकार)"),
+    "B": ("B", "Left Index", "ई (ईकार)"),
+    "n": ("n", "Right Index", "द (दकार)"),
+    "N": ("N", "Right Index", "द् / द्ध"),
+    "m": ("m", "Right Index", "उ (उकार)"),
+    "M": ("M", "Right Index", "ऊ (ऊकार)"),
+    ",": (",", "Right Middle", "ए (एकार)"),
+    "<": ("<", "Right Middle", "ऐ (ऐकार)"),
+    ".": (".", "Right Ring", "ण (णकार)"),
+    ">": (">", "Right Ring", "ण् (आधा ण)"),
+    "/": ("/", "Right Pinky", "ध (धकार)"),
+    "?": ("?", "Right Pinky", "ध् (आधा ध)"),
+}
+
 
 def load_lessons_data():
     if os.path.exists(LESSONS_FILE):
@@ -132,7 +237,7 @@ class OfflineTypingTutor:
     def __init__(self, root):
         self.root = root
         self.root.title("Offline Typing Tutor — English | Kruti Dev 010 | Mangal")
-        self.root.geometry("1040x780")
+        self.root.geometry("1060x790")
         self.root.configure(bg="#f0f4f8")
 
         self.lessons_data = load_lessons_data()
@@ -165,7 +270,7 @@ class OfflineTypingTutor:
         )
         header.pack(fill=tk.X)
 
-        # 1. भाषा (Script), लेसन, समय और रीसेट बार
+        # 1. स्क्रिप्ट, लेसन, समय और रीसेट बार
         top_bar = tk.Frame(self.root, bg="#f0f4f8", pady=6)
         top_bar.pack(fill=tk.X, padx=16)
 
@@ -229,14 +334,14 @@ class OfflineTypingTutor:
         )
         self.acc_label.pack(side=tk.LEFT, expand=True)
 
-        # 3. फिंगर गाइड बैनर (किस उंगली से टाइप करना है)
+        # 3. फिंगर गाइड बैनर
         finger_frame = tk.Frame(self.root, bg="#edf2f7", pady=6, padx=10, bd=1, relief=tk.GROOVE)
         finger_frame.pack(fill=tk.X, padx=16, pady=4)
 
         self.finger_label = tk.Label(
             finger_frame,
             text="अगली की: —  |  उंगली: —",
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
             bg="#edf2f7",
             fg="#1a202c",
         )
@@ -294,7 +399,7 @@ class OfflineTypingTutor:
         self.input_text.pack(fill=tk.X, padx=16)
         self.input_text.bind("<KeyRelease>", self.on_key_release)
 
-        # 5. लेसन मैनेजमेंट पैनल (Add / Edit / Delete / Load) — मुख्य स्क्रीन पर हमेशा उपलब्ध
+        # 5. लेसन मैनेजमेंट पैनल (Add / Edit / Delete / Load)
         manage_frame = tk.LabelFrame(
             self.root,
             text="लेसन जोड़ें / बदलें / हटाएँ (चयनित स्क्रिप्ट के लिए सेव होगा)",
@@ -437,6 +542,18 @@ class OfflineTypingTutor:
             if self.space_btn:
                 self.space_btn.config(bg="#f6e05e", fg="#000000")
             self.finger_label.config(text=f"अगली की: [SPACE]  |  {FINGER_HINDI_NAMES['Thumb']}")
+            return
+
+        if script == "Kruti Dev 010" and next_char in KRUTIDEV_KEY_MAP:
+            key_sym, finger, kruti_desc = KRUTIDEV_KEY_MAP[next_char]
+            if key_sym in self.key_buttons:
+                lbl, _ = self.key_buttons[key_sym]
+                lbl.config(bg="#f6e05e", fg="#000000")
+            finger_hi = FINGER_HINDI_NAMES.get(finger, finger)
+            shift_note = " + Shift" if (key_sym.isupper() or key_sym in "~!@#$%^&*()_+{}|:\"<>?") else ""
+            self.finger_label.config(
+                text=f"Kruti Dev की: '{key_sym}'{shift_note} ({kruti_desc})  |  {finger_hi}"
+            )
             return
 
         if next_char in self.key_buttons:
