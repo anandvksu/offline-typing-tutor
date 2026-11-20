@@ -259,7 +259,7 @@ class OfflineTypingTutor:
     def __init__(self, root):
         self.root = root
         self.root.title("Offline Typing Tutor — English | Kruti Dev 010 | Mangal")
-        self.root.geometry("1220x880")
+        self.root.geometry("1300x900")
         self.root.configure(bg="#eef2f6")
 
         self.users_data = load_json_file(USERS_FILE, default_users)
@@ -276,10 +276,13 @@ class OfflineTypingTutor:
         self.timer_running = False
         self.time_left = 60
         self.selected_duration = 60
+        self.word_font_size = 24
+        self.key_width = 9
+        self.key_height = 3
+        self.key_font_size = 11
         self.key_buttons = {}
         self.space_btn = None
-        self.left_hand_dots = {}
-        self.right_hand_dots = {}
+        self.hand_shapes = {}
         self.last_wrong_char = None
         self.strict_errors_count = 0
         self.counted_error_positions = set()
@@ -319,12 +322,38 @@ class OfflineTypingTutor:
         self.ensure_user_data(u)
         return self.all_stats[u][s]
 
-    def get_script_font(self, script, size=18):
+    def get_script_font(self, script, size=None):
+        base = self.word_font_size if size is None else size
         if script == "Kruti Dev 010":
-            return ("Kruti Dev 010", size + 4)
+            return ("Kruti Dev 010", base + 6)
         if script == "Mangal":
-            return ("Nirmala UI", size)
-        return ("Consolas", size)
+            return ("Nirmala UI", base)
+        return ("Consolas", base)
+
+    def adjust_word_size(self, delta):
+        self.word_font_size = max(14, min(42, self.word_font_size + delta))
+        script = self.script_var.get()
+        self.target_text.config(font=self.get_script_font(script, self.word_font_size))
+        self.input_text.config(font=self.get_script_font(script, max(13, self.word_font_size - 2)))
+        self.word_size_lbl.config(text=f"Word: {self.word_font_size}")
+
+    def adjust_keyboard_size(self, delta):
+        self.key_width = max(5, min(14, self.key_width + delta))
+        self.key_font_size = max(8, min(15, self.key_font_size + delta))
+        if delta > 0 and self.key_width >= 8:
+            self.key_height = 3
+        elif delta < 0 and self.key_width <= 6:
+            self.key_height = 2
+
+        for lbl, _, _ in self.key_buttons.values():
+            lbl.config(width=self.key_width, height=self.key_height, font=("Consolas", self.key_font_size, "bold"))
+
+        if self.space_btn:
+            space_w = self.key_width * 9 + 12
+            space_h = 2 if self.key_height >= 3 else 1
+            self.space_btn.config(width=space_w, height=space_h, font=("Segoe UI", max(8, self.key_font_size - 1), "bold"))
+
+        self.key_size_lbl.config(text=f"Key: {self.key_width}")
 
     def setup_ui(self):
         header = tk.Frame(self.root, bg="#1e3a5f", pady=7, padx=14)
@@ -371,25 +400,26 @@ class OfflineTypingTutor:
             pady=3,
         ).pack(side=tk.RIGHT)
 
-        ctrl = tk.Frame(self.root, bg="#eef2f6", pady=5, padx=14)
+        # कंट्रोल बार (यूज़र, स्क्रिप्ट, लेसन, समय, मोड, मैन्युअल Word/Keyboard साइज़, रीसेट)
+        ctrl = tk.Frame(self.root, bg="#eef2f6", pady=5, padx=12)
         ctrl.pack(fill=tk.X)
 
         tk.Label(ctrl, text="यूज़र:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
         self.user_var = tk.StringVar()
-        self.user_combo = ttk.Combobox(ctrl, textvariable=self.user_var, width=15, state="readonly")
-        self.user_combo.pack(side=tk.LEFT, padx=(3, 3))
+        self.user_combo = ttk.Combobox(ctrl, textvariable=self.user_var, width=13, state="readonly")
+        self.user_combo.pack(side=tk.LEFT, padx=(2, 2))
         self.user_combo.bind("<<ComboboxSelected>>", self.on_user_change)
 
         tk.Button(
             ctrl,
-            text="+ नया यूज़र",
+            text="+ यूज़र",
             command=self.add_new_user,
             bg="#0f766e",
             fg="white",
             font=("Segoe UI", 8, "bold"),
-            padx=6,
+            padx=5,
             pady=1,
-        ).pack(side=tk.LEFT, padx=(0, 10))
+        ).pack(side=tk.LEFT, padx=(0, 8))
 
         tk.Label(ctrl, text="स्क्रिप्ट:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
         self.script_var = tk.StringVar(value="English")
@@ -397,16 +427,16 @@ class OfflineTypingTutor:
             ctrl,
             textvariable=self.script_var,
             values=["English", "Kruti Dev 010", "Mangal"],
-            width=13,
+            width=12,
             state="readonly",
         )
-        self.script_combo.pack(side=tk.LEFT, padx=(3, 8))
+        self.script_combo.pack(side=tk.LEFT, padx=(2, 6))
         self.script_combo.bind("<<ComboboxSelected>>", self.on_script_change)
 
         tk.Label(ctrl, text="लेसन:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
         self.lesson_var = tk.StringVar()
-        self.lesson_combo = ttk.Combobox(ctrl, textvariable=self.lesson_var, width=25, state="readonly")
-        self.lesson_combo.pack(side=tk.LEFT, padx=(3, 8))
+        self.lesson_combo = ttk.Combobox(ctrl, textvariable=self.lesson_var, width=22, state="readonly")
+        self.lesson_combo.pack(side=tk.LEFT, padx=(2, 6))
         self.lesson_combo.bind("<<ComboboxSelected>>", lambda e: self.load_selected_lesson())
 
         tk.Label(ctrl, text="समय:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
@@ -418,7 +448,7 @@ class OfflineTypingTutor:
             width=7,
             state="readonly",
         )
-        self.time_combo.pack(side=tk.LEFT, padx=(3, 8))
+        self.time_combo.pack(side=tk.LEFT, padx=(2, 6))
         self.time_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
 
         tk.Label(ctrl, text="मोड:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
@@ -430,13 +460,29 @@ class OfflineTypingTutor:
             width=12,
             state="readonly",
         )
-        self.mode_combo.pack(side=tk.LEFT, padx=(3, 8))
+        self.mode_combo.pack(side=tk.LEFT, padx=(2, 6))
         self.mode_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
+
+        # मैन्युअल Word साइज़ कंट्रोल
+        word_ctrl = tk.Frame(ctrl, bg="#dbeafe", padx=4, pady=1, bd=1, relief=tk.SOLID)
+        word_ctrl.pack(side=tk.LEFT, padx=3)
+        tk.Button(word_ctrl, text="W-", command=lambda: self.adjust_word_size(-2), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
+        self.word_size_lbl = tk.Label(word_ctrl, text=f"Word: {self.word_font_size}", font=("Segoe UI", 8, "bold"), bg="#dbeafe", fg="#1e3a8a", padx=3)
+        self.word_size_lbl.pack(side=tk.LEFT)
+        tk.Button(word_ctrl, text="W+", command=lambda: self.adjust_word_size(2), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
+
+        # मैन्युअल Keyboard साइज़ कंट्रोल
+        key_ctrl = tk.Frame(ctrl, bg="#fef3c7", padx=4, pady=1, bd=1, relief=tk.SOLID)
+        key_ctrl.pack(side=tk.LEFT, padx=3)
+        tk.Button(key_ctrl, text="K-", command=lambda: self.adjust_keyboard_size(-1), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
+        self.key_size_lbl = tk.Label(key_ctrl, text=f"Key: {self.key_width}", font=("Segoe UI", 8, "bold"), bg="#fef3c7", fg="#92400e", padx=3)
+        self.key_size_lbl.pack(side=tk.LEFT)
+        tk.Button(key_ctrl, text="K+", command=lambda: self.adjust_keyboard_size(1), font=("Segoe UI", 8, "bold"), padx=4, pady=0).pack(side=tk.LEFT)
 
         self.disable_backspace_var = tk.BooleanVar(value=False)
         tk.Checkbutton(
             ctrl,
-            text="Backspace बंद",
+            text="No BS",
             variable=self.disable_backspace_var,
             bg="#eef2f6",
             font=("Segoe UI", 8),
@@ -458,7 +504,7 @@ class OfflineTypingTutor:
             bg="#2563eb",
             fg="white",
             font=("Segoe UI", 9, "bold"),
-            padx=9,
+            padx=8,
             pady=2,
         ).pack(side=tk.RIGHT)
 
@@ -496,7 +542,7 @@ class OfflineTypingTutor:
         self.finger_label = tk.Label(
             guide_bar,
             text="उंगली गाइड: —",
-            font=("Segoe UI", 10, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg="#ffffff",
             fg="#1e293b",
         )
@@ -514,12 +560,12 @@ class OfflineTypingTutor:
         self.target_text = tk.Text(
             self.root,
             height=4,
-            font=("Consolas", 18),
+            font=("Consolas", self.word_font_size),
             wrap=tk.WORD,
             bg="#f8fafc",
             fg="#0f172a",
-            padx=12,
-            pady=8,
+            padx=14,
+            pady=10,
             bd=2,
             relief=tk.GROOVE,
         )
@@ -532,12 +578,12 @@ class OfflineTypingTutor:
         self.input_text = tk.Text(
             self.root,
             height=2,
-            font=("Consolas", 17),
+            font=("Consolas", self.word_font_size - 2),
             wrap=tk.WORD,
             bg="#ffffff",
             fg="#0f172a",
-            padx=12,
-            pady=6,
+            padx=14,
+            pady=8,
             bd=2,
             relief=tk.GROOVE,
         )
@@ -548,11 +594,65 @@ class OfflineTypingTutor:
         bottom_panel = tk.Frame(self.root, bg="#eef2f6", padx=14, pady=2)
         bottom_panel.pack(fill=tk.BOTH, expand=True)
 
-        self.left_hand_dots = self.build_hand_panel(bottom_panel, "बायाँ हाथ (Left Hand)", side=tk.LEFT)
+        self.build_visual_hand(bottom_panel, "बायाँ हाथ (Left Hand)", side=tk.LEFT, is_left=True)
         kb_center = tk.Frame(bottom_panel, bg="#eef2f6", padx=6)
         kb_center.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.build_onscreen_keyboard(kb_center)
-        self.right_hand_dots = self.build_hand_panel(bottom_panel, "दायाँ हाथ (Right Hand)", side=tk.RIGHT)
+        self.build_visual_hand(bottom_panel, "दायाँ हाथ (Right Hand)", side=tk.RIGHT, is_left=False)
+
+    def build_visual_hand(self, parent, title, side, is_left):
+        frame = tk.LabelFrame(
+            parent,
+            text=title,
+            font=("Segoe UI", 9, "bold"),
+            bg="#ffffff",
+            fg="#1e3a5f",
+            padx=6,
+            pady=4,
+            width=195,
+        )
+        frame.pack(side=side, fill=tk.Y)
+        frame.pack_propagate(False)
+
+        canvas = tk.Canvas(frame, width=178, height=195, bg="#ffffff", highlightthickness=0)
+        canvas.pack(fill=tk.BOTH, expand=True)
+
+        canvas.create_oval(38, 105, 140, 172, fill="#fde68a", outline="#92400e", width=2)
+
+        if is_left:
+            finger_specs = [
+                ("Left Pinky", 26, 56, 44, 112, "Pinky"),
+                ("Left Ring", 48, 34, 68, 106, "Ring"),
+                ("Left Middle", 72, 24, 92, 105, "Middle"),
+                ("Left Index", 96, 36, 116, 108, "Index"),
+                ("Thumb", 122, 92, 156, 134, "Thumb"),
+            ]
+        else:
+            finger_specs = [
+                ("Thumb", 22, 92, 56, 134, "Thumb"),
+                ("Right Index", 62, 36, 82, 108, "Index"),
+                ("Right Middle", 86, 24, 106, 105, "Middle"),
+                ("Right Ring", 110, 34, 130, 106, "Ring"),
+                ("Right Pinky", 134, 56, 152, 112, "Pinky"),
+            ]
+
+        for f_name, x1, y1, x2, y2, short_lbl in finger_specs:
+            shape_id = canvas.create_oval(x1, y1, x2, y2, fill="#f1f5f9", outline="#475569", width=2)
+            cx = (x1 + x2) // 2
+            cy = (y1 + y2) // 2
+            canvas.create_text(cx, cy, text=short_lbl[0], font=("Segoe UI", 8, "bold"), fill="#1e293b")
+            self.hand_shapes[f_name] = (canvas, shape_id)
+
+        active_lbl = tk.Label(
+            frame,
+            text="सक्रिय उंगली: —",
+            font=("Segoe UI", 8, "bold"),
+            bg="#ffffff",
+            fg="#b91c1c",
+            wraplength=175,
+        )
+        active_lbl.pack(side=tk.BOTTOM, pady=2)
+        self.hand_shapes[f"label_{'L' if is_left else 'R'}"] = active_lbl
 
     def refresh_user_dropdown(self):
         users = self.users_data.get("users", ["Default User"])
@@ -586,46 +686,6 @@ class OfflineTypingTutor:
         self.refresh_lesson_dropdown(select_first=True)
         self.load_selected_lesson()
 
-    def build_hand_panel(self, parent, title, side):
-        frame = tk.LabelFrame(
-            parent,
-            text=title,
-            font=("Segoe UI", 9, "bold"),
-            bg="#ffffff",
-            fg="#1e3a5f",
-            padx=8,
-            pady=6,
-            width=155,
-        )
-        frame.pack(side=side, fill=tk.Y)
-        frame.pack_propagate(False)
-
-        prefix = "Left" if side == tk.LEFT else "Right"
-        fingers = [
-            (f"{prefix} Pinky", "छोटी (Pinky)"),
-            (f"{prefix} Ring", "रिंग (Ring)"),
-            (f"{prefix} Middle", "मध्यमा (Middle)"),
-            (f"{prefix} Index", "तर्जनी (Index)"),
-        ]
-        dots = {}
-        for f_key, f_label in fingers:
-            row = tk.Frame(frame, bg="#ffffff", pady=4)
-            row.pack(fill=tk.X)
-            dot = tk.Label(row, text="  ", bg="#e2e8f0", relief=tk.SOLID, bd=1, width=3)
-            dot.pack(side=tk.LEFT, padx=(0, 6))
-            tk.Label(row, text=f_label, font=("Segoe UI", 9, "bold"), bg="#ffffff", fg="#334155").pack(side=tk.LEFT)
-            dots[f_key] = dot
-
-        thumb_row = tk.Frame(frame, bg="#ffffff", pady=8)
-        thumb_row.pack(fill=tk.X)
-        t_dot = tk.Label(thumb_row, text="  ", bg="#e2e8f0", relief=tk.SOLID, bd=1, width=3)
-        t_dot.pack(side=tk.LEFT, padx=(0, 6))
-        tk.Label(thumb_row, text="अंगूठा (Space)", font=("Segoe UI", 9, "bold"), bg="#ffffff", fg="#334155").pack(
-            side=tk.LEFT
-        )
-        dots["Thumb"] = t_dot
-        return dots
-
     def build_onscreen_keyboard(self, parent):
         kb_box = tk.LabelFrame(
             parent,
@@ -645,9 +705,9 @@ class OfflineTypingTutor:
                 lbl = tk.Label(
                     r_frame,
                     text=f"{normal_ch}\n{shift_ch}",
-                    width=7,
-                    height=3,
-                    font=("Consolas", 10, "bold"),
+                    width=self.key_width,
+                    height=self.key_height,
+                    font=("Consolas", self.key_font_size, "bold"),
                     bg=base_color,
                     fg="#0f172a",
                     bd=1,
@@ -662,9 +722,9 @@ class OfflineTypingTutor:
         self.space_btn = tk.Label(
             space_row,
             text="SPACEBAR (Thumb / अंगूठा)",
-            width=68,
-            height=2,
-            font=("Segoe UI", 9, "bold"),
+            width=self.key_width * 9 + 12,
+            height=2 if self.key_height >= 3 else 1,
+            font=("Segoe UI", max(8, self.key_font_size - 1), "bold"),
             bg="#f1f5f9",
             fg="#0f172a",
             bd=1,
@@ -677,21 +737,26 @@ class OfflineTypingTutor:
             lbl.config(bg=base_color, fg="#0f172a")
         if self.space_btn:
             self.space_btn.config(bg="#f1f5f9", fg="#0f172a")
-        for dot in self.left_hand_dots.values():
-            dot.config(bg="#e2e8f0")
-        for dot in self.right_hand_dots.values():
-            dot.config(bg="#e2e8f0")
+        for key, val in self.hand_shapes.items():
+            if key.startswith("label_"):
+                val.config(text="सक्रिय उंगली: —")
+            else:
+                canvas, shape_id = val
+                canvas.itemconfig(shape_id, fill="#f1f5f9")
 
     def highlight_finger(self, finger):
-        if finger in self.left_hand_dots:
-            self.left_hand_dots[finger].config(bg="#ef4444")
-        if finger in self.right_hand_dots:
-            self.right_hand_dots[finger].config(bg="#ef4444")
-        if finger == "Thumb":
-            if "Thumb" in self.left_hand_dots:
-                self.left_hand_dots["Thumb"].config(bg="#ef4444")
-            if "Thumb" in self.right_hand_dots:
-                self.right_hand_dots["Thumb"].config(bg="#ef4444")
+        if finger in self.hand_shapes:
+            canvas, shape_id = self.hand_shapes[finger]
+            canvas.itemconfig(shape_id, fill="#ef4444")
+        if finger.startswith("Left") and "label_L" in self.hand_shapes:
+            self.hand_shapes["label_L"].config(text=f"सक्रिय: {finger.replace('Left ', '')}")
+        elif finger.startswith("Right") and "label_R" in self.hand_shapes:
+            self.hand_shapes["label_R"].config(text=f"सक्रिय: {finger.replace('Right ', '')}")
+        elif finger == "Thumb":
+            if "label_L" in self.hand_shapes:
+                self.hand_shapes["label_L"].config(text="सक्रिय: Thumb (Space)")
+            if "label_R" in self.hand_shapes:
+                self.hand_shapes["label_R"].config(text="सक्रिय: Thumb (Space)")
 
     def record_error_char(self, ch):
         if not ch or ch == "\n":
@@ -846,8 +911,8 @@ class OfflineTypingTutor:
 
     def set_practice_text(self, content, label_text=""):
         script = self.script_var.get()
-        font_style = self.get_script_font(script, size=18)
-        input_font = self.get_script_font(script, size=17)
+        font_style = self.get_script_font(script, self.word_font_size)
+        input_font = self.get_script_font(script, max(13, self.word_font_size - 2))
 
         self.target_text.config(state=tk.NORMAL, font=font_style)
         self.target_text.delete("1.0", tk.END)
@@ -938,7 +1003,7 @@ class OfflineTypingTutor:
         body_box = tk.Text(
             win,
             height=11,
-            font=self.get_script_font(script, size=14),
+            font=self.get_script_font(script, 16),
             wrap=tk.WORD,
             bg="#ffffff",
             padx=10,
@@ -1043,7 +1108,7 @@ class OfflineTypingTutor:
         canvas = tk.Canvas(game_win, bg="#1e293b", highlightthickness=0)
         canvas.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
 
-        entry = tk.Entry(game_win, font=self.get_script_font(script, size=14), bg="#f8fafc", fg="#0f172a")
+        entry = tk.Entry(game_win, font=self.get_script_font(script, 15), bg="#f8fafc", fg="#0f172a")
         entry.pack(fill=tk.X, padx=12, pady=(0, 12))
         entry.focus()
 
@@ -1074,7 +1139,7 @@ class OfflineTypingTutor:
                 state["y"],
                 text=state["word"],
                 fill="#fde047",
-                font=self.get_script_font(script, size=18),
+                font=self.get_script_font(script, 20),
             )
             state["y"] += 5
             if state["y"] >= w_height - 20:
