@@ -1,6 +1,6 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
 import time
+import tkinter as tk
+from tkinter import messagebox, ttk
 
 LESSONS = {
     "English - Home Row (Basic)": "asdf jkl; asdf jkl; dad sad fad lad ask all fall salad flask",
@@ -10,6 +10,7 @@ LESSONS = {
     "Hindi (Kruti Dev 010) - Practice": "Hkwfe lq/kkj mi&lekgrkZ U;k;ky; esa nkf[ky&[kkfjt vihy okn dh lquokbZ dh tkrh gSA",
     "Hindi (Mangal / Unicode) - Practice": "भूमि सुधार उप-समाहर्ता न्यायालय में दाखिल-खारिज अपील वाद की सुनवाई की जाती है।"
 }
+
 
 class OfflineTypingTutor:
     def __init__(self, root):
@@ -27,57 +28,155 @@ class OfflineTypingTutor:
         self.load_lesson()
 
     def setup_ui(self):
-        header = tk.Label(self.root, text="ऑफलाइन टाइपिंग ट्यूटर (English | Kruti Dev 010 | Mangal)", 
-                          font=("Segoe UI", 16, "bold"), bg="#1a365d", fg="white", pady=10)
+        header = tk.Label(
+            self.root,
+            text="ऑफलाइन टाइपिंग ट्यूटर (English | Kruti Dev 010 | Mangal)",
+            font=("Segoe UI", 16, "bold"),
+            bg="#1a365d",
+            fg="white",
+            pady=10,
+        )
         header.pack(fill=tk.X)
 
         control_frame = tk.Frame(self.root, bg="#f0f4f8", pady=10)
         control_frame.pack(fill=tk.X, padx=20)
 
-        tk.Label(control_frame, text="लेसन चुनें:", font=("Segoe UI", 11, "bold"), bg="#f0f4f8").pack(side=tk.LEFT, padx=5)
+        tk.Label(
+            control_frame,
+            text="लेसन चुनें:",
+            font=("Segoe UI", 11, "bold"),
+            bg="#f0f4f8",
+        ).pack(side=tk.LEFT, padx=5)
         self.lesson_var = tk.StringVar(value=list(LESSONS.keys())[0])
-        self.lesson_combo = ttk.Combobox(control_frame, textvariable=self.lesson_var, values=list(LESSONS.keys()), width=38, state="readonly")
+        self.lesson_combo = ttk.Combobox(
+            control_frame,
+            textvariable=self.lesson_var,
+            values=list(LESSONS.keys()),
+            width=38,
+            state="readonly",
+        )
         self.lesson_combo.pack(side=tk.LEFT, padx=5)
         self.lesson_combo.bind("<<ComboboxSelected>>", lambda e: self.load_lesson())
 
-        tk.Label(control_frame, text="समय (सेकंड):", font=("Segoe UI", 11, "bold"), bg="#f0f4f8").pack(side=tk.LEFT, padx=(20, 5))
+        tk.Label(
+            control_frame,
+            text="समय (सेकंड):",
+            font=("Segoe UI", 11, "bold"),
+            bg="#f0f4f8",
+        ).pack(side=tk.LEFT, padx=(20, 5))
         self.time_var = tk.StringVar(value="60")
-        time_combo = ttk.Combobox(control_frame, textvariable=self.time_var, values=["60", "120", "300", "600"], width=8, state="readonly")
+        time_combo = ttk.Combobox(
+            control_frame,
+            textvariable=self.time_var,
+            values=["60", "120", "300", "600"],
+            width=8,
+            state="readonly",
+        )
         time_combo.pack(side=tk.LEFT, padx=5)
         time_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
 
-        reset_btn = tk.Button(control_frame, text="रीसेट करें (Reset)", command=self.reset_test, 
-                              bg="#2b6cb0", fg="white", font=("Segoe UI", 10, "bold"), padx=12, pady=3)
+        reset_btn = tk.Button(
+            control_frame,
+            text="रीसेट करें (Reset)",
+            command=self.reset_test,
+            bg="#2b6cb0",
+            fg="white",
+            font=("Segoe UI", 10, "bold"),
+            padx=12,
+            pady=3,
+        )
         reset_btn.pack(side=tk.RIGHT, padx=5)
 
         stats_frame = tk.Frame(self.root, bg="#e2e8f0", pady=8, bd=1, relief=tk.SOLID)
         stats_frame.pack(fill=tk.X, padx=20, pady=5)
 
-        self.timer_label = tk.Label(stats_frame, text="समय: 60s", font=("Segoe UI", 13, "bold"), bg="#e2e8f0", fg="#c53030")
+        self.timer_label = tk.Label(
+            stats_frame,
+            text="समय: 60s",
+            font=("Segoe UI", 13, "bold"),
+            bg="#e2e8f0",
+            fg="#c53030",
+        )
         self.timer_label.pack(side=tk.LEFT, expand=True)
 
-        self.wpm_label = tk.Label(stats_frame, text="गति (WPM): 0", font=("Segoe UI", 13, "bold"), bg="#e2e8f0", fg="#2f855a")
+        self.wpm_label = tk.Label(
+            stats_frame,
+            text="गति (WPM): 0",
+            font=("Segoe UI", 13, "bold"),
+            bg="#e2e8f0",
+            fg="#2f855a",
+        )
         self.wpm_label.pack(side=tk.LEFT, expand=True)
 
-        self.acc_label = tk.Label(stats_frame, text="सटीकता (Accuracy): 100%", font=("Segoe UI", 13, "bold"), bg="#e2e8f0", fg="#2b6cb0")
+        self.acc_label = tk.Label(
+            stats_frame,
+            text="सटीकता (Accuracy): 100%",
+            font=("Segoe UI", 13, "bold"),
+            bg="#e2e8f0",
+            fg="#2b6cb0",
+        )
         self.acc_label.pack(side=tk.LEFT, expand=True)
 
-        tk.Label(self.root, text="नीचे दिए गए मैटर को देखकर टाइप करें:", font=("Segoe UI", 10, "bold"), bg="#f0f4f8").pack(anchor="w", padx=20, pady=(10, 2))
-        self.target_text = tk.Text(self.root, height=5, font=("Segoe UI", 16), wrap=tk.WORD, bg="#ffffff", fg="#1a202c", padx=10, pady=10, bd=2, relief=tk.GROOVE)
+        tk.Label(
+            self.root,
+            text="नीचे दिए गए मैटर को देखकर टाइप करें:",
+            font=("Segoe UI", 10, "bold"),
+            bg="#f0f4f8",
+        ).pack(anchor="w", padx=20, pady=(10, 2))
+        self.target_text = tk.Text(
+            self.root,
+            height=5,
+            font=("Segoe UI", 16),
+            wrap=tk.WORD,
+            bg="#ffffff",
+            fg="#1a202c",
+            padx=10,
+            pady=10,
+            bd=2,
+            relief=tk.GROOVE,
+        )
         self.target_text.pack(fill=tk.X, padx=20)
         self.target_text.config(state=tk.DISABLED)
 
-        tk.Label(self.root, text="यहाँ टाइप करना शुरू करें (पहला अक्षर दबाते ही टाइमर चालू हो जाएगा):", font=("Segoe UI", 10, "bold"), bg="#f0f4f8").pack(anchor="w", padx=20, pady=(12, 2))
-        self.input_text = tk.Text(self.root, height=5, font=("Segoe UI", 16), wrap=tk.WORD, bg="#fffaf0", fg="#000000", padx=10, pady=10, bd=2, relief=tk.GROOVE)
+        tk.Label(
+            self.root,
+            text="यहाँ टाइप करना शुरू करें (पहला अक्षर दबाते ही टाइमर चालू हो जाएगा):",
+            font=("Segoe UI", 10, "bold"),
+            bg="#f0f4f8",
+        ).pack(anchor="w", padx=20, pady=(12, 2))
+        self.input_text = tk.Text(
+            self.root,
+            height=5,
+            font=("Segoe UI", 16),
+            wrap=tk.WORD,
+            bg="#fffaf0",
+            fg="#000000",
+            padx=10,
+            pady=10,
+            bd=2,
+            relief=tk.GROOVE,
+        )
         self.input_text.pack(fill=tk.X, padx=20)
         self.input_text.bind("<KeyRelease>", self.on_key_release)
 
         custom_frame = tk.Frame(self.root, bg="#f0f4f8", pady=10)
         custom_frame.pack(fill=tk.X, padx=20)
-        tk.Label(custom_frame, text="कस्टम पैराग्राफ पेस्ट करें:", font=("Segoe UI", 10), bg="#f0f4f8").pack(side=tk.LEFT)
+        tk.Label(
+            custom_frame,
+            text="कस्टम पैराग्राफ पेस्ट करें:",
+            font=("Segoe UI", 10),
+            bg="#f0f4f8",
+        ).pack(side=tk.LEFT)
         self.custom_entry = tk.Entry(custom_frame, width=55, font=("Segoe UI", 10))
         self.custom_entry.pack(side=tk.LEFT, padx=8)
-        tk.Button(custom_frame, text="कस्टम मैटर लोड करें", command=self.load_custom_text, bg="#38a169", fg="white", font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT)
+        tk.Button(
+            custom_frame,
+            text="कस्टम मैटर लोड करें",
+            command=self.load_custom_text,
+            bg="#38a169",
+            fg="white",
+            font=("Segoe UI", 9, "bold"),
+        ).pack(side=tk.LEFT)
 
     def load_lesson(self):
         lesson_name = self.lesson_var.get()
@@ -141,4 +240,40 @@ class OfflineTypingTutor:
         self.calculate_stats()
 
         target = self.target_text.get("1.0", "end-1c")
-        typed = self.input_text.
+        typed = self.input_text.get("1.0", "end-1c")
+        if len(typed) >= len(target):
+            self.finish_test()
+
+    def calculate_stats(self):
+        target = self.target_text.get("1.0", "end-1c")
+        typed = self.input_text.get("1.0", "end-1c")
+
+        if not typed:
+            return
+
+        correct_chars = 0
+        for i, char in enumerate(typed):
+            if i < len(target) and char == target[i]:
+                correct_chars += 1
+
+        accuracy = (correct_chars / len(typed)) * 100
+        elapsed_minutes = max((self.selected_duration - self.time_left) / 60.0, 1 / 60.0)
+        wpm = int((correct_chars / 5) / elapsed_minutes)
+
+        self.wpm_label.config(text=f"गति (WPM): {wpm}")
+        self.acc_label.config(text=f"सटीकता (Accuracy): {accuracy:.1f}%")
+
+    def finish_test(self):
+        self.timer_running = False
+        self.input_text.config(state=tk.DISABLED)
+        self.calculate_stats()
+        messagebox.showinfo(
+            "परिणाम (Result)",
+            f"टेस्ट पूरा हुआ!\n\n{self.wpm_label.cget('text')}\n{self.acc_label.cget('text')}",
+        )
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = OfflineTypingTutor(root)
+    root.mainloop()
