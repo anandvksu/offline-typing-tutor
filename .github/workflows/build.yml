@@ -1,16 +1,30 @@
 name: Build Windows EXE
-on: [push]
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - run: pip install pyinstaller
-      - run: pyinstaller --onefile --windowed --name "TypingTutor" typing_tutor.py
-      - uses: actions/upload-artifact@v4
+          python-version: "3.11"
+
+      - name: Install PyInstaller and Build EXE
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller
+          pyinstaller --noconfirm --onefile --windowed --name TypingTutor typing_tutor.py
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
         with:
           name: TypingTutor-Windows
           path: dist/TypingTutor.exe
