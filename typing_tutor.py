@@ -4,7 +4,7 @@ import random
 import sys
 import time
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 
 def get_app_dir():
@@ -16,6 +16,7 @@ def get_app_dir():
 APP_DIR = get_app_dir()
 LESSONS_FILE = os.path.join(APP_DIR, "typing_lessons.json")
 STATS_FILE = os.path.join(APP_DIR, "typing_stats.json")
+USERS_FILE = os.path.join(APP_DIR, "typing_users.json")
 
 DEFAULT_LESSONS = {
     "English": {
@@ -236,16 +237,16 @@ def save_json_file(path, data):
         pass
 
 
-def default_lessons():
-    return {k: dict(v) for k, v in DEFAULT_LESSONS.items()}
+def make_script_lessons():
+    return {script: dict(lessons) for script, lessons in DEFAULT_LESSONS.items()}
 
 
-def default_stats():
-    return {
-        "English": {},
-        "Kruti Dev 010": {},
-        "Mangal": {},
-    }
+def make_script_stats():
+    return {"English": {}, "Kruti Dev 010": {}, "Mangal": {}}
+
+
+def default_users():
+    return {"active_user": "Default User", "users": ["Default User"]}
 
 
 def format_mm_ss(seconds):
@@ -258,17 +259,18 @@ class OfflineTypingTutor:
     def __init__(self, root):
         self.root = root
         self.root.title("Offline Typing Tutor — English | Kruti Dev 010 | Mangal")
-        self.root.geometry("1160x840")
+        self.root.geometry("1180x850")
         self.root.configure(bg="#eef2f6")
 
-        self.lessons_data = load_json_file(LESSONS_FILE, default_lessons)
-        for script in ["English", "Kruti Dev 010", "Mangal"]:
-            if script not in self.lessons_data or not self.lessons_data[script]:
-                self.lessons_data[script] = dict(DEFAULT_LESSONS[script])
+        self.users_data = load_json_file(USERS_FILE, default_users)
+        if not self.users_data.get("users"):
+            self.users_data = default_users()
+        if self.users_data.get("active_user") not in self.users_data["users"]:
+            self.users_data["active_user"] = self.users_data["users"][0]
 
-        self.stats_data = load_json_file(STATS_FILE, default_stats)
-        for script in ["English", "Kruti Dev 010", "Mangal"]:
-            self.stats_data.setdefault(script, {})
+        self.all_lessons = load_json_file(LESSONS_FILE, dict)
+        self.all_stats = load_json_file(STATS_FILE, dict)
+        self.ensure_user_data(self.current_user())
 
         self.start_time = None
         self.timer_running = False
@@ -283,8 +285,39 @@ class OfflineTypingTutor:
         self.counted_error_positions = set()
 
         self.setup_ui()
+        self.refresh_user_dropdown()
         self.refresh_lesson_dropdown(select_first=True)
         self.load_selected_lesson()
+
+    def current_user(self):
+        return self.users_data["active_user"]
+
+    def ensure_user_data(self, username):
+        if username not in self.all_lessons or not isinstance(self.all_lessons[username], dict):
+            self.all_lessons[username] = make_script_lessons()
+        for script in ["English", "Kruti Dev 010", "Mangal"]:
+            if script not in self.all_lessons[username] or not self.all_lessons[username][script]:
+                self.all_lessons[username][script] = dict(DEFAULT_LESSONS[script])
+
+        if username not in self.all_stats or not isinstance(self.all_stats[username], dict):
+            self.all_stats[username] = make_script_stats()
+        for script in ["English", "Kruti Dev 010", "Mangal"]:
+            self.all_stats[username].setdefault(script, {})
+
+        save_json_file(LESSONS_FILE, self.all_lessons)
+        save_json_file(STATS_FILE, self.all_stats)
+
+    def get_user_lessons_for_script(self, script=None):
+        s = script or self.script_var.get()
+        u = self.current_user()
+        self.ensure_user_data(u)
+        return self.all_lessons[u][s]
+
+    def get_user_stats_for_script(self, script=None):
+        s = script or self.script_var.get()
+        u = self.current_user()
+        self.ensure_user_data(u)
+        return self.all_stats[u][s]
 
     def get_script_font(self, script, size=18):
         if script == "Kruti Dev 010":
@@ -301,7 +334,7 @@ class OfflineTypingTutor:
         tk.Label(
             header,
             text="ऑफलाइन टाइपिंग ट्यूटर (English | Kruti Dev 010 | Mangal)",
-            font=("Segoe UI", 15, "bold"),
+            font=("Segoe UI", 14, "bold"),
             bg="#1e3a5f",
             fg="white",
         ).pack(side=tk.LEFT)
@@ -339,26 +372,43 @@ class OfflineTypingTutor:
             pady=3,
         ).pack(side=tk.RIGHT)
 
-        # कंट्रोल बार (साफ़ और व्यवस्थित)
+        # कंट्रोल बार (यूज़र नाम + स्क्रिप्ट + लेसन + समय + मोड + रीसेट)
         ctrl = tk.Frame(self.root, bg="#eef2f6", pady=6, padx=14)
         ctrl.pack(fill=tk.X)
 
-        tk.Label(ctrl, text="भाषा/स्क्रिप्ट:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
+        tk.Label(ctrl, text="यूज़र:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
+        self.user_var = tk.StringVar()
+        self.user_combo = ttk.Combobox(ctrl, textvariable=self.user_var, width=15, state="readonly")
+        self.user_combo.pack(side=tk.LEFT, padx=(3, 3))
+        self.user_combo.bind("<<ComboboxSelected>>", self.on_user_change)
+
+        tk.Button(
+            ctrl,
+            text="+ नया यूज़र",
+            command=self.add_new_user,
+            bg="#0f766e",
+            fg="white",
+            font=("Segoe UI", 8, "bold"),
+            padx=6,
+            pady=1,
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
+        tk.Label(ctrl, text="स्क्रिप्ट:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
         self.script_var = tk.StringVar(value="English")
         self.script_combo = ttk.Combobox(
             ctrl,
             textvariable=self.script_var,
             values=["English", "Kruti Dev 010", "Mangal"],
-            width=14,
+            width=13,
             state="readonly",
         )
-        self.script_combo.pack(side=tk.LEFT, padx=(4, 10))
+        self.script_combo.pack(side=tk.LEFT, padx=(3, 8))
         self.script_combo.bind("<<ComboboxSelected>>", self.on_script_change)
 
         tk.Label(ctrl, text="लेसन:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
         self.lesson_var = tk.StringVar()
-        self.lesson_combo = ttk.Combobox(ctrl, textvariable=self.lesson_var, width=30, state="readonly")
-        self.lesson_combo.pack(side=tk.LEFT, padx=(4, 10))
+        self.lesson_combo = ttk.Combobox(ctrl, textvariable=self.lesson_var, width=25, state="readonly")
+        self.lesson_combo.pack(side=tk.LEFT, padx=(3, 8))
         self.lesson_combo.bind("<<ComboboxSelected>>", lambda e: self.load_selected_lesson())
 
         tk.Label(ctrl, text="समय:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
@@ -367,10 +417,10 @@ class OfflineTypingTutor:
             ctrl,
             textvariable=self.time_var,
             values=["1 Min", "2 Min", "5 Min", "10 Min"],
-            width=8,
+            width=7,
             state="readonly",
         )
-        self.time_combo.pack(side=tk.LEFT, padx=(4, 10))
+        self.time_combo.pack(side=tk.LEFT, padx=(3, 8))
         self.time_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
 
         tk.Label(ctrl, text="मोड:", font=("Segoe UI", 9, "bold"), bg="#eef2f6").pack(side=tk.LEFT)
@@ -379,10 +429,10 @@ class OfflineTypingTutor:
             ctrl,
             textvariable=self.mode_var,
             values=["गलत पर रुकें", "आगे बढ़ें"],
-            width=14,
+            width=12,
             state="readonly",
         )
-        self.mode_combo.pack(side=tk.LEFT, padx=(4, 10))
+        self.mode_combo.pack(side=tk.LEFT, padx=(3, 8))
         self.mode_combo.bind("<<ComboboxSelected>>", lambda e: self.reset_test())
 
         self.disable_backspace_var = tk.BooleanVar(value=False)
@@ -391,8 +441,8 @@ class OfflineTypingTutor:
             text="Backspace बंद",
             variable=self.disable_backspace_var,
             bg="#eef2f6",
-            font=("Segoe UI", 9),
-        ).pack(side=tk.LEFT, padx=4)
+            font=("Segoe UI", 8),
+        ).pack(side=tk.LEFT, padx=2)
 
         self.sound_var = tk.BooleanVar(value=True)
         tk.Checkbutton(
@@ -400,8 +450,8 @@ class OfflineTypingTutor:
             text="बीप",
             variable=self.sound_var,
             bg="#eef2f6",
-            font=("Segoe UI", 9),
-        ).pack(side=tk.LEFT, padx=4)
+            font=("Segoe UI", 8),
+        ).pack(side=tk.LEFT, padx=2)
 
         tk.Button(
             ctrl,
@@ -410,11 +460,11 @@ class OfflineTypingTutor:
             bg="#2563eb",
             fg="white",
             font=("Segoe UI", 9, "bold"),
-            padx=10,
+            padx=9,
             pady=2,
         ).pack(side=tk.RIGHT)
 
-        # स्कोर पट्टी (ऑरेंज/स्लेट प्रोफेशनल बार)
+        # स्कोर पट्टी
         stats_bar = tk.Frame(self.root, bg="#ea580c", pady=6, padx=10)
         stats_bar.pack(fill=tk.X, padx=14, pady=(0, 6))
 
@@ -511,6 +561,38 @@ class OfflineTypingTutor:
         self.build_onscreen_keyboard(kb_center)
         self.right_hand_dots = self.build_hand_panel(bottom_panel, "दायाँ हाथ (Right Hand)", side=tk.RIGHT)
 
+    def refresh_user_dropdown(self):
+        users = self.users_data.get("users", ["Default User"])
+        self.user_combo["values"] = users
+        self.user_var.set(self.current_user())
+
+    def add_new_user(self):
+        name = simpledialog.askstring("नया यूज़र", "नए यूज़र का नाम लिखें:", parent=self.root)
+        if not name:
+            return
+        clean_name = name.strip()
+        if not clean_name:
+            return
+        if clean_name not in self.users_data["users"]:
+            self.users_data["users"].append(clean_name)
+        self.users_data["active_user"] = clean_name
+        self.ensure_user_data(clean_name)
+        save_json_file(USERS_FILE, self.users_data)
+        self.refresh_user_dropdown()
+        self.refresh_lesson_dropdown(select_first=True)
+        self.load_selected_lesson()
+        messagebox.showinfo("यूज़र तैयार", f"अब '{clean_name}' की प्रोफ़ाइल सक्रिय है। सभी लेसन और कमज़ोर कीज़ का रिकॉर्ड अलग सेव होगा।")
+
+    def on_user_change(self, event=None):
+        selected = self.user_var.get()
+        if not selected:
+            return
+        self.users_data["active_user"] = selected
+        self.ensure_user_data(selected)
+        save_json_file(USERS_FILE, self.users_data)
+        self.refresh_lesson_dropdown(select_first=True)
+        self.load_selected_lesson()
+
     def build_hand_panel(self, parent, title, side):
         frame = tk.LabelFrame(
             parent,
@@ -536,14 +618,7 @@ class OfflineTypingTutor:
         for f_key, f_label in fingers:
             row = tk.Frame(frame, bg="#ffffff", pady=3)
             row.pack(fill=tk.X)
-            dot = tk.Label(
-                row,
-                text="  ",
-                bg="#e2e8f0",
-                relief=tk.SOLID,
-                bd=1,
-                width=3,
-            )
+            dot = tk.Label(row, text="  ", bg="#e2e8f0", relief=tk.SOLID, bd=1, width=3)
             dot.pack(side=tk.LEFT, padx=(0, 6))
             tk.Label(row, text=f_label, font=("Segoe UI", 8, "bold"), bg="#ffffff", fg="#334155").pack(side=tk.LEFT)
             dots[f_key] = dot
@@ -628,10 +703,9 @@ class OfflineTypingTutor:
     def record_error_char(self, ch):
         if not ch or ch == "\n":
             return
-        script = self.script_var.get()
-        script_map = self.stats_data.setdefault(script, {})
+        script_map = self.get_user_stats_for_script()
         script_map[ch] = script_map.get(ch, 0) + 1
-        save_json_file(STATS_FILE, self.stats_data)
+        save_json_file(STATS_FILE, self.all_stats)
 
     def beep_error(self):
         if self.sound_var.get():
@@ -756,8 +830,8 @@ class OfflineTypingTutor:
             self.finger_label.config(text=f"अगला अक्षर ({script}): '{next_char}'")
 
     def refresh_lesson_dropdown(self, select_first=False, select_name=None):
-        script = self.script_var.get()
-        names = list(self.lessons_data.get(script, {}).keys())
+        lessons = self.get_user_lessons_for_script()
+        names = list(lessons.keys())
         self.lesson_combo["values"] = names
         if not names:
             self.lesson_var.set("")
@@ -772,10 +846,10 @@ class OfflineTypingTutor:
         self.load_selected_lesson()
 
     def load_selected_lesson(self):
-        script = self.script_var.get()
+        lessons = self.get_user_lessons_for_script()
         lesson_name = self.lesson_var.get()
-        content = self.lessons_data.get(script, {}).get(lesson_name, "")
-        self.set_practice_text(content, label_text=f"लेसन: {lesson_name}")
+        content = lessons.get(lesson_name, "")
+        self.set_practice_text(content, label_text=f"यूज़र: {self.current_user()} | लेसन: {lesson_name}")
 
     def set_practice_text(self, content, label_text=""):
         script = self.script_var.get()
@@ -791,13 +865,14 @@ class OfflineTypingTutor:
 
     def practice_weak_keys(self):
         script = self.script_var.get()
-        err_map = self.stats_data.get(script, {})
+        user = self.current_user()
+        err_map = self.get_user_stats_for_script(script)
         sorted_chars = [c for c, _ in sorted(err_map.items(), key=lambda x: x[1], reverse=True) if c.strip()]
 
         if not sorted_chars:
             messagebox.showinfo(
                 "कमज़ोर कीज़ डेटा नहीं है",
-                f"{script} में अभी तक कोई गलती दर्ज नहीं हुई है। पहले थोड़ा टाइप करें, फिर यह बटन आपके सबसे ज़्यादा गलत होने वाले अक्षरों का प्रैक्टिस सेट बना देगा।",
+                f"{user} के लिए {script} में अभी तक कोई गलती दर्ज नहीं हुई है। पहले थोड़ा टाइप करें, फिर यह बटन आपके सबसे ज़्यादा गलत होने वाले अक्षरों का प्रैक्टिस सेट बना देगा।",
             )
             return
 
@@ -811,12 +886,15 @@ class OfflineTypingTutor:
 
         random.shuffle(drill_items)
         drill_text = " ".join(drill_items * 3)
-        self.set_practice_text(drill_text, label_text=f"कमज़ोर कीज़ फ़ोकस ({script}): {' '.join(top_chars)}")
+        self.set_practice_text(drill_text, label_text=f"{user} — कमज़ोर कीज़ ({script}): {' '.join(top_chars)}")
 
     def open_lesson_manager(self):
         script = self.script_var.get()
+        user = self.current_user()
+        lessons = self.get_user_lessons_for_script(script)
+
         win = tk.Toplevel(self.root)
-        win.title(f"लेसन मैनेजर — {script}")
+        win.title(f"लेसन मैनेजर — {user} ({script})")
         win.geometry("760x440")
         win.configure(bg="#f8fafc")
 
@@ -848,8 +926,7 @@ class OfflineTypingTutor:
             pady=8,
         )
         body_box.pack(fill=tk.BOTH, expand=True, padx=12)
-        current_body = self.lessons_data.get(script, {}).get(self.lesson_var.get(), "")
-        body_box.insert("1.0", current_body)
+        body_box.insert("1.0", lessons.get(self.lesson_var.get(), ""))
 
         btns = tk.Frame(win, bg="#f8fafc", padx=12, pady=10)
         btns.pack(fill=tk.X)
@@ -860,14 +937,14 @@ class OfflineTypingTutor:
             if not t or not b:
                 messagebox.showwarning("अधूरी जानकारी", "लेसन का नाम और मैटर दोनों लिखें।", parent=win)
                 return
-            if t in self.lessons_data[script]:
+            if t in lessons:
                 messagebox.showinfo("पहले से मौजूद", "इस नाम का लेसन पहले से है। अपडेट करें या नया नाम दें।", parent=win)
                 return
-            self.lessons_data[script][t] = b
-            save_json_file(LESSONS_FILE, self.lessons_data)
+            lessons[t] = b
+            save_json_file(LESSONS_FILE, self.all_lessons)
             self.refresh_lesson_dropdown(select_name=t)
             self.load_selected_lesson()
-            messagebox.showinfo("सेव हुआ", f"'{t}' जुड़ गया।", parent=win)
+            messagebox.showinfo("सेव हुआ", f"'{t}' ({user}) में जुड़ गया।", parent=win)
 
         def on_update():
             old_t = self.lesson_var.get()
@@ -876,29 +953,30 @@ class OfflineTypingTutor:
             if not old_t or not new_t or not b:
                 messagebox.showwarning("अधूरी जानकारी", "नाम और मैटर दोनों भरें।", parent=win)
                 return
-            if old_t != new_t and old_t in self.lessons_data[script]:
-                del self.lessons_data[script][old_t]
-            self.lessons_data[script][new_t] = b
-            save_json_file(LESSONS_FILE, self.lessons_data)
+            if old_t != new_t and old_t in lessons:
+                del lessons[old_t]
+            lessons[new_t] = b
+            save_json_file(LESSONS_FILE, self.all_lessons)
             self.refresh_lesson_dropdown(select_name=new_t)
             self.load_selected_lesson()
-            messagebox.showinfo("अपडेट हुआ", f"'{new_t}' अपडेट हो गया।", parent=win)
+            messagebox.showinfo("अपडेट हुआ", f"'{new_t}' ({user}) में अपडेट हो गया।", parent=win)
 
         def on_delete():
             cur_t = self.lesson_var.get()
-            if len(self.lessons_data[script]) <= 1:
+            if len(lessons) <= 1:
                 messagebox.showwarning("हटा नहीं सकते", f"{script} में कम से कम 1 लेसन रहना ज़रूरी है।", parent=win)
                 return
             if not messagebox.askyesno("पुष्टि करें", f"क्या '{cur_t}' हटाना चाहते हैं?", parent=win):
                 return
-            del self.lessons_data[script][cur_t]
-            save_json_file(LESSONS_FILE, self.lessons_data)
+            del lessons[cur_t]
+            save_json_file(LESSONS_FILE, self.all_lessons)
             self.refresh_lesson_dropdown(select_first=True)
             self.load_selected_lesson()
+            next_t = self.lesson_var.get()
             title_entry.delete(0, tk.END)
-            title_entry.insert(0, self.lesson_var.get())
+            title_entry.insert(0, next_t)
             body_box.delete("1.0", tk.END)
-            body_box.insert("1.0", self.lessons_data[script][self.lesson_var.get()])
+            body_box.insert("1.0", lessons.get(next_t, ""))
 
         tk.Button(btns, text="नया लेसन जोड़ें (Add)", command=on_add, bg="#059669", fg="white", font=("Segoe UI", 9, "bold"), padx=10).pack(side=tk.LEFT, padx=3)
         tk.Button(btns, text="अपडेट करें (Edit)", command=on_update, bg="#2563eb", fg="white", font=("Segoe UI", 9, "bold"), padx=10).pack(side=tk.LEFT, padx=3)
@@ -923,10 +1001,11 @@ class OfflineTypingTutor:
 
     def open_game_window(self):
         script = self.script_var.get()
+        user = self.current_user()
         words = GAME_WORDS.get(script, GAME_WORDS["English"])
 
         game_win = tk.Toplevel(self.root)
-        game_win.title(f"टाइपिंग गेम (Word Rush) — {script}")
+        game_win.title(f"टाइपिंग गेम (Word Rush) — {user} ({script})")
         game_win.geometry("680x460")
         game_win.configure(bg="#0f172a")
 
@@ -941,6 +1020,7 @@ class OfflineTypingTutor:
         top = tk.Frame(game_win, bg="#1e293b", pady=6, padx=12)
         top.pack(fill=tk.X)
 
+        tk.Label(top, text=f"यूज़र: {user}", font=("Segoe UI", 10, "bold"), bg="#1e293b", fg="#93c5fd").pack(side=tk.LEFT, padx=6)
         score_lbl = tk.Label(top, text="स्कोर: 0", font=("Segoe UI", 11, "bold"), bg="#1e293b", fg="#4ade80")
         score_lbl.pack(side=tk.LEFT, padx=10)
         lives_lbl = tk.Label(top, text="लाइव: 5", font=("Segoe UI", 11, "bold"), bg="#1e293b", fg="#f87171")
@@ -989,7 +1069,7 @@ class OfflineTypingTutor:
                 entry.delete(0, tk.END)
                 if state["lives"] <= 0:
                     state["active"] = False
-                    messagebox.showinfo("गेम समाप्त", f"आपका कुल स्कोर: {state['score']}", parent=game_win)
+                    messagebox.showinfo("गेम समाप्त", f"{user} का कुल स्कोर: {state['score']}", parent=game_win)
                     game_win.destroy()
                     return
                 spawn_word()
@@ -1016,7 +1096,7 @@ class OfflineTypingTutor:
         if custom_status:
             self.alert_label.config(text=custom_status, fg="#7c3aed")
         else:
-            self.alert_label.config(text="पहला अक्षर दबाते ही समय शुरू होगा", fg="#2563eb")
+            self.alert_label.config(text=f"यूज़र: {self.current_user()} — पहला अक्षर दबाते ही समय शुरू होगा", fg="#2563eb")
 
         self.input_text.config(state=tk.NORMAL)
         self.input_text.delete("1.0", tk.END)
@@ -1084,7 +1164,7 @@ class OfflineTypingTutor:
         self.calculate_stats()
         messagebox.showinfo(
             "परिणाम (Result)",
-            f"टेस्ट पूरा हुआ!\n\n"
+            f"यूज़र: {self.current_user()}\nटेस्ट पूरा हुआ!\n\n"
             f"{self.wpm_label.cget('text')}  |  {self.acc_label.cget('text')}\n"
             f"{self.err_label.cget('text')}  |  {self.signs_label.cget('text')}",
         )
