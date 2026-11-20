@@ -327,7 +327,6 @@ class OfflineTypingTutor:
         return ("Consolas", size)
 
     def setup_ui(self):
-        # शीर्ष पट्टी
         header = tk.Frame(self.root, bg="#1e3a5f", pady=8, padx=14)
         header.pack(fill=tk.X)
 
@@ -372,7 +371,6 @@ class OfflineTypingTutor:
             pady=3,
         ).pack(side=tk.RIGHT)
 
-        # कंट्रोल बार (यूज़र नाम + स्क्रिप्ट + लेसन + समय + मोड + रीसेट)
         ctrl = tk.Frame(self.root, bg="#eef2f6", pady=6, padx=14)
         ctrl.pack(fill=tk.X)
 
@@ -464,7 +462,6 @@ class OfflineTypingTutor:
             pady=2,
         ).pack(side=tk.RIGHT)
 
-        # स्कोर पट्टी
         stats_bar = tk.Frame(self.root, bg="#ea580c", pady=6, padx=10)
         stats_bar.pack(fill=tk.X, padx=14, pady=(0, 6))
 
@@ -493,7 +490,6 @@ class OfflineTypingTutor:
         )
         self.acc_label.pack(side=tk.LEFT, expand=True)
 
-        # फिंगर गाइड व अलर्ट लाइन
         guide_bar = tk.Frame(self.root, bg="#ffffff", pady=6, padx=12, bd=1, relief=tk.SOLID)
         guide_bar.pack(fill=tk.X, padx=14, pady=(0, 6))
 
@@ -515,7 +511,6 @@ class OfflineTypingTutor:
         )
         self.alert_label.pack(side=tk.RIGHT)
 
-        # बड़ा टाइपिंग मैटर बॉक्स (टारगेट)
         self.target_text = tk.Text(
             self.root,
             height=5,
@@ -534,7 +529,6 @@ class OfflineTypingTutor:
         self.target_text.tag_config("current", foreground="#000000", background="#93c5fd", underline=True)
         self.target_text.config(state=tk.DISABLED)
 
-        # यूज़र इनपुट टाइपिंग बॉक्स
         self.input_text = tk.Text(
             self.root,
             height=3,
@@ -551,7 +545,6 @@ class OfflineTypingTutor:
         self.input_text.bind("<KeyPress>", self.on_key_press)
         self.input_text.bind("<KeyRelease>", self.on_key_release)
 
-        # निचला पैनल: बायाँ हाथ + कीबोर्ड + दायाँ हाथ
         bottom_panel = tk.Frame(self.root, bg="#eef2f6", padx=14, pady=4)
         bottom_panel.pack(fill=tk.BOTH, expand=True)
 
@@ -581,7 +574,7 @@ class OfflineTypingTutor:
         self.refresh_user_dropdown()
         self.refresh_lesson_dropdown(select_first=True)
         self.load_selected_lesson()
-        messagebox.showinfo("यूज़र तैयार", f"अब '{clean_name}' की प्रोफ़ाइल सक्रिय है। सभी लेसन और कमज़ोर कीज़ का रिकॉर्ड अलग सेव होगा।")
+        messagebox.showinfo("यूज़र तैयार", f"अब '{clean_name}' की प्रोफ़ाइल सक्रिय है।")
 
     def on_user_change(self, event=None):
         selected = self.user_var.get()
@@ -623,7 +616,7 @@ class OfflineTypingTutor:
             tk.Label(row, text=f_label, font=("Segoe UI", 8, "bold"), bg="#ffffff", fg="#334155").pack(side=tk.LEFT)
             dots[f_key] = dot
 
-        thumb_row = tk.Frame(frame, bg="#ffffff", pady=(10, 2))
+        thumb_row = tk.Frame(frame, bg="#ffffff", pady=6)
         thumb_row.pack(fill=tk.X)
         t_dot = tk.Label(thumb_row, text="  ", bg="#e2e8f0", relief=tk.SOLID, bd=1, width=3)
         t_dot.pack(side=tk.LEFT, padx=(0, 6))
@@ -665,7 +658,7 @@ class OfflineTypingTutor:
                 self.key_buttons[shift_ch] = (lbl, finger, base_color)
 
         space_row = tk.Frame(kb_box, bg="#ffffff")
-        space_row.pack(pady=(3, 1))
+        space_row.pack(pady=2)
         self.space_btn = tk.Label(
             space_row,
             text="SPACEBAR (Thumb / अंगूठा)",
@@ -888,6 +881,32 @@ class OfflineTypingTutor:
         drill_text = " ".join(drill_items * 3)
         self.set_practice_text(drill_text, label_text=f"{user} — कमज़ोर कीज़ ({script}): {' '.join(top_chars)}")
 
+    def export_lessons_to_folder(self, parent_win=None):
+        script = self.script_var.get()
+        user = self.current_user()
+        lessons = self.get_user_lessons_for_script(script)
+        target_dir = os.path.join(APP_DIR, "lessons")
+        os.makedirs(target_dir, exist_ok=True)
+
+        prefix_map = {"English": "english", "Kruti Dev 010": "krutidev", "Mangal": "mangal"}
+        prefix = prefix_map.get(script, "lesson")
+
+        saved_count = 0
+        for idx, (title, body) in enumerate(lessons.items(), start=1):
+            safe_name = "".join(c if c.isalnum() or c in (" ", "_", "-") else "_" for c in title).strip().replace(" ", "_").lower()
+            if not safe_name:
+                safe_name = f"part_{idx}"
+            file_path = os.path.join(target_dir, f"{prefix}_{idx:02d}_{safe_name}.txt")
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(body)
+            saved_count += 1
+
+        messagebox.showinfo(
+            "एक्सपोर्ट पूरा हुआ",
+            f"{script} ({user}) के {saved_count} लेसन यहाँ सेव हो गए:\n{target_dir}",
+            parent=parent_win or self.root,
+        )
+
     def open_lesson_manager(self):
         script = self.script_var.get()
         user = self.current_user()
@@ -895,7 +914,7 @@ class OfflineTypingTutor:
 
         win = tk.Toplevel(self.root)
         win.title(f"लेसन मैनेजर — {user} ({script})")
-        win.geometry("760x440")
+        win.geometry("780x450")
         win.configure(bg="#f8fafc")
 
         top = tk.Frame(win, bg="#f8fafc", padx=12, pady=8)
@@ -978,10 +997,11 @@ class OfflineTypingTutor:
             body_box.delete("1.0", tk.END)
             body_box.insert("1.0", lessons.get(next_t, ""))
 
-        tk.Button(btns, text="नया लेसन जोड़ें (Add)", command=on_add, bg="#059669", fg="white", font=("Segoe UI", 9, "bold"), padx=10).pack(side=tk.LEFT, padx=3)
-        tk.Button(btns, text="अपडेट करें (Edit)", command=on_update, bg="#2563eb", fg="white", font=("Segoe UI", 9, "bold"), padx=10).pack(side=tk.LEFT, padx=3)
-        tk.Button(btns, text="हटाएँ (Delete)", command=on_delete, bg="#dc2626", fg="white", font=("Segoe UI", 9, "bold"), padx=10).pack(side=tk.LEFT, padx=3)
-        tk.Button(btns, text="बंद करें", command=win.destroy, bg="#64748b", fg="white", font=("Segoe UI", 9, "bold"), padx=10).pack(side=tk.RIGHT)
+        tk.Button(btns, text="नया लेसन जोड़ें (Add)", command=on_add, bg="#059669", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
+        tk.Button(btns, text="अपडेट करें (Edit)", command=on_update, bg="#2563eb", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
+        tk.Button(btns, text="हटाएँ (Delete)", command=on_delete, bg="#dc2626", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
+        tk.Button(btns, text="lessons/ फ़ोल्डर में एक्सपोर्ट करें", command=lambda: self.export_lessons_to_folder(win), bg="#0f766e", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.LEFT, padx=3)
+        tk.Button(btns, text="बंद करें", command=win.destroy, bg="#64748b", fg="white", font=("Segoe UI", 9, "bold"), padx=9).pack(side=tk.RIGHT)
 
     def load_txt_into_editor(self, title_entry, body_box):
         path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -1009,13 +1029,7 @@ class OfflineTypingTutor:
         game_win.geometry("680x460")
         game_win.configure(bg="#0f172a")
 
-        state = {
-            "score": 0,
-            "lives": 5,
-            "word": random.choice(words),
-            "y": 30,
-            "active": True,
-        }
+        state = {"score": 0, "lives": 5, "word": random.choice(words), "y": 30, "active": True}
 
         top = tk.Frame(game_win, bg="#1e293b", pady=6, padx=12)
         top.pack(fill=tk.X)
